@@ -70,7 +70,6 @@ class Option_eu:
         self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
 
 
-
     def option_eu_mc(self):
         prix_option = 0
         Nmc = 10000
@@ -84,6 +83,7 @@ class Option_eu:
 
         self.result_label.config(text=f"Option Price: {prix_option:.4f}")
         return prix_option
+
 
 
 
