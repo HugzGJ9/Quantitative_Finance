@@ -14,10 +14,10 @@ S(t) = S(0)*exp((mu-0.5sigma**2)$t + sigmaWt)
 from BM_def import BM
 import numpy as np
 from Maths import norm
-def simu_actif(init, N, T, mu, sigma):
+def simu_actif(init, N, t, T, mu, sigma):
     St = [init]
-    BM_ = BM(N, T)
-    delta_t = T/N
+    BM_ = BM(N, T-t)
+    delta_t = (T-t)/N
     for i in range(N):
         BM_delta = BM_[i+1] - BM_[i]
         St.append(St[i]*np.exp((mu-0.5*sigma**2)*delta_t + sigma*BM_delta))
@@ -25,10 +25,10 @@ def simu_actif(init, N, T, mu, sigma):
 
 def payoff_call_eu(ST, K):
     return max(ST - K, 0)
-def option_eu_mc(St, T, K, Nmc):
+def option_eu_mc(St, t, T, K, Nmc):
     prix_option = 0
     for i in range(Nmc):
-        prix_actif = simu_actif(St, 100, T, 0.1, 0.3)
+        prix_actif = simu_actif(St, 100, t, T, 0.1, 0.3)
         prix_option += payoff_call_eu(prix_actif[-1], K)
     prix_option = prix_option/Nmc
     return prix_option
