@@ -11,11 +11,11 @@ WtN = WtN−1 + gN√Delta_t
 '''
 
 import numpy as np
-from Maths import norm
+from Maths import norm_
 
 def BM(N, T):
     delta_t = T/N
     W_t = [0]
     for i in range(N):
-        W_t.append(W_t[i] + norm()*np.sqrt(delta_t))
+        W_t.append(W_t[i] + norm_() * np.sqrt(delta_t))
     return W_t

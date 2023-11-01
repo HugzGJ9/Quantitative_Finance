@@ -13,7 +13,7 @@ S(t) = S(0)*exp((mu-0.5sigma**2)$t + sigmaWt)
 
 from BM_def import BM
 import numpy as np
-from Maths import norm
+from Maths import norm_
 def simu_actif(init, N, t, T, mu, sigma):
     St = [init]
     BM_ = BM(N, T-t)
