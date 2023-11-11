@@ -31,8 +31,8 @@ def delta_option_eu(type, St, K, t, T, r, sigma):
         return -normal_repartition(-d_1)
 def gamma_option_eu(type, St, K, t, T, r, sigma):
     d_1, d_2 = d__(St, K, t, T, r, sigma)
-    derive_d_1 = (1/St) / (sigma * np.sqrt(T - t))
+    derive_d_1 = 1 / (St*sigma * np.sqrt(T - t))
     if type == 'Call EU':
-        return derive_d_1*normal_distribution(d_1)
+        return normal_distribution(d_1) / (St*sigma * np.sqrt(T - t))
     elif type == 'Put EU':
         return derive_d_1*normal_distribution(-d_1)

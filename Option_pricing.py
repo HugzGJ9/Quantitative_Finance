@@ -1,3 +1,6 @@
+import random
+from random import randint
+
 from BM_def import BM
 import numpy as np
 from Graphics import plot_2d
@@ -108,12 +111,57 @@ class Option_eu:
     def Delta(self):
         option_delta = (delta_option_eu(self.type, self.St, self.K, self.t, self.T, self.r, self.sigma))
         return option_delta
+    def Delta_DF(self):
+        delta_St = 0.00001
+        option_delta_St = Option_eu(self.type,self.St+delta_St, self.N, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.type,self.St, self.N, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+
+        delta = (option_delta_St - option_option)/delta_St
+        return delta
     def Gamma(self):
         option_gamma = (gamma_option_eu(self.type, self.St, self.K, self.t, self.T, self.r, self.sigma))
         return option_gamma
+    def Gamma_DF(self):
+        delta_St = 0.00001
+        option_gamma_plus = Option_eu(self.type, self.St + delta_St, self.N, self.t, self.T, self.r,
+                                      self.sigma).option_price_close_formulae()
+        option_gamma_minus = Option_eu(self.type, self.St - delta_St, self.N, self.t, self.T, self.r,
+                                       self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.type,self.St, self.N, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+
+        gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
+        return gamma
+    def Vega_DF(self):
+        delta_vol = 0.00001
+        option_delta_vol = Option_eu(self.type, self.St, self.N, self.t, self.T, self.r,
+                                    self.sigma+delta_vol).option_price_close_formulae()
+        option_option = Option_eu(self.type, self.St, self.N, self.t, self.T, self.r,
+                                  self.sigma).option_price_close_formulae()
+
+        vega = (option_delta_vol - option_option) / delta_vol
+        return vega
+    def Theta_DF(self):
+        delta_t = 0.00001
+        option_delta_t = Option_eu(self.type, self.St, self.N, self.t+delta_t, self.T, self.r,
+                                    self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.type, self.St, self.N, self.t, self.T, self.r,
+                                  self.sigma).option_price_close_formulae()
+
+        theta = (option_delta_t - option_option) / delta_t
+        return theta
 
 def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
     St_range = range(20, 180, 1)
+
+    if greek.lower() =='delta':
+        Option_eu.greek = Option_eu.Delta_DF
+    elif greek.lower() == 'gamma':
+        Option_eu.greek = Option_eu.Gamma_DF
+    elif greek.lower() == 'vega':
+        Option_eu.greek = Option_eu.Vega_DF
+    elif greek.lower() == 'theta':
+        Option_eu.greek = Option_eu.Theta_DF
+
     if type(vol) == list:
         moving_param = vol
         moving_param_label = "volatility"
@@ -123,11 +171,14 @@ def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
     elif type(r) == list:
         moving_param = r
         moving_param_label = "st rate"
+    else:
+        greek_list = []
+        for i in St_range:
+            option_obj = Option_eu(type_option, i, K, t, T, r, vol)
+            greek_list.append(option_obj.greek())
+        plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, True)
+        return
 
-    if greek.lower() =='delta':
-        Option_eu.greek = Option_eu.Delta
-    elif greek.lower() == 'gamma':
-        Option_eu.greek = Option_eu.Gamma
     for v in moving_param:
         if moving_param_label == "volatility":
             vol = v
@@ -135,11 +186,12 @@ def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
             T = v
         elif moving_param_label == "st rate":
             r = v
-        delta_liste = []
+        greek_list = []
         for i in St_range:
             option_obj = Option_eu(type_option, i, K, t, T, r, vol)
-            delta_liste.append(option_obj.greek())
-        plot_2d(St_range, delta_liste, f"{greek} curve", "Prix de l'actif", greek, False)
+            greek_list.append(option_obj.greek())
+        plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, False)
+    moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
     plt.legend(moving_param)
     plt.show()
 
@@ -151,13 +203,20 @@ if __name__ == '__main__':
     t = 0
     K = 105
     r = 0.1
-    vol = 0.3
-    St = 100
+    vol = 0.2
+    S0 = 100
+    mean = random.random()
+    vol = random.random()
 
-    r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
-    plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
-    plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
+    St = simu_actif(S0, N, t, T, mean, vol)
+    print(St)
+    # r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    # call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
+    # plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
+    # plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
+    # plot_greek_curves_2d('Call EU', 'Vega', K, t, T, r, vol)
+    # plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
+
 
     #to activate the user interface
     # root = ThemedTk(theme="breeze")

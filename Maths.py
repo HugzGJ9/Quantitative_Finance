@@ -7,4 +7,4 @@ def norm_():
 def normal_repartition(x):
     return 0.5 * (1 + math.erf(x / np.sqrt(2)))
 def normal_distribution(x):
-    return norm.pdf(x, loc=0, scale=1)
+    return norm.pdf(x)
