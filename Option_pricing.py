@@ -7,7 +7,7 @@ from Actif_stoch_BS import option_eu_mc
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-from ttkthemes import ThemedTk
+#from ttkthemes import ThemedTk
 from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, delta_option_eu, gamma_option_eu
 
@@ -112,20 +112,35 @@ class Option_eu:
         option_gamma = (gamma_option_eu(self.type, self.St, self.K, self.t, self.T, self.r, self.sigma))
         return option_gamma
 
-def plot_greek_curves_2d(type_option, greek, K, t, T, r):
+def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
     St_range = range(20, 180, 1)
-    vol = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    if type(vol) == list:
+        moving_param = vol
+        moving_param_label = "volatility"
+    elif type(T) == list:
+        moving_param = T
+        moving_param_label = "maturity"
+    elif type(r) == list:
+        moving_param = r
+        moving_param_label = "st rate"
+
     if greek.lower() =='delta':
         Option_eu.greek = Option_eu.Delta
     elif greek.lower() == 'gamma':
         Option_eu.greek = Option_eu.Gamma
-    for v in vol:
+    for v in moving_param:
+        if moving_param_label == "volatility":
+            vol = v
+        elif moving_param_label == "maturity":
+            T = v
+        elif moving_param_label == "st rate":
+            r = v
         delta_liste = []
         for i in St_range:
-            option_obj = Option_eu(type_option, i, K, t, T, r, v)
+            option_obj = Option_eu(type_option, i, K, t, T, r, vol)
             delta_liste.append(option_obj.greek())
         plot_2d(St_range, delta_liste, f"{greek} curve", "Prix de l'actif", greek, False)
-    plt.legend(vol)
+    plt.legend(moving_param)
     plt.show()
 
 
@@ -136,11 +151,13 @@ if __name__ == '__main__':
     t = 0
     K = 105
     r = 0.1
-    sigma = 0.3
+    vol = 0.3
     St = 100
-    call_eu1 = Option_eu('Call EU', St, K, t, T, r, sigma)
-    plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r)
-    plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r)
+
+    r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
+    plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
+    plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
 
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
