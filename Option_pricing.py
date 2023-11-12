@@ -150,7 +150,7 @@ class Option_eu:
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
-def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
+def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
 
     if greek.lower() =='delta':
@@ -174,7 +174,7 @@ def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
     else:
         greek_list = []
         for i in St_range:
-            option_obj = Option_eu(type_option, i, K, t, T, r, vol)
+            option_obj = Option_eu(type_option, i, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
         plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, True)
         return
@@ -188,7 +188,7 @@ def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
             r = v
         greek_list = []
         for i in St_range:
-            option_obj = Option_eu(type_option, i, K, t, T, r, vol)
+            option_obj = Option_eu(type_option, i, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
         plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, False)
     moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
@@ -198,18 +198,44 @@ def plot_greek_curves_2d(type_option, greek, K, t, T, r, vol):
 
 if __name__ == '__main__':
     Nmc = 100
-    N = 100
+    N = 5
     T = 1
     t = 0
-    K = 105
+    K = 95
     r = 0.1
     vol = 0.2
     S0 = 100
     mean = random.random()
     vol = random.random()
 
-    St = simu_actif(S0, N, t, T, mean, vol)
-    print(St)
+    print(mean, vol)
+    St = simu_actif(S0, N, t, T, 0, 0)
+    #t = [t_/N for t_ in list(range(0, N, 1))]
+    t = np.linspace(0, T-1.0*10**(-4), N+1)
+
+    plt.plot(St)
+    plt.title('Asset price')
+    plt.show()
+    price_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).option_price_close_formulae() for t_, St_ in zip(t, St)]
+    plt.plot(price_)
+    plt.title('Option price')
+    plt.show()
+    deltas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Delta_DF() for t_, St_ in zip(t, St)]
+    plt.plot(deltas_)
+    plt.title('Option delta')
+    plt.show()
+    gammas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Gamma_DF() for t_, St_ in zip(t, St)]
+    plt.plot(gammas_)
+    plt.title('Option gamma')
+    plt.show()
+    thetas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Theta_DF() for t_, St_ in zip(t, St)]
+    plt.plot(thetas_)
+    plt.title('Option theta')
+    plt.show()
+    vegas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Vega_DF() for t_, St_ in zip(t, St)]
+    plt.plot(vegas_)
+    plt.title('Option vega')
+    plt.show()
     # r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     # call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
     # plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
