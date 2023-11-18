@@ -158,6 +158,9 @@ class Option_eu:
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
+class Option_prem_gen(Option_eu):
+    def __init__(self, type, St, K, t, T, r, sigma, K_2=None, root=None):
+
 def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
 
@@ -213,16 +216,13 @@ if __name__ == '__main__':
     r = 0.1
     vol = 0.2
     S0 = 100
-    mean = random.random()
-    vol = random.random()
+    # mean = random.random()
+    # vol = random.random()
 
     Option_eu('Call EU', 100, 95, 0, T, r, vol).display_payoff_option()
     Option_eu('Put EU', 100, 95, 0, T, r, vol).display_payoff_option()
     Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).display_payoff_option()
-
-
-
-    Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae()
+    print(Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae())
 
 
     '''
