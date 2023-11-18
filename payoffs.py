@@ -2,7 +2,6 @@ import statistics
 import numpy as np
 from Maths import normal_repartition, normal_distribution
 
-
 def payoff_call_eu(ST, K):
     return(max(ST-K, 0))
 def payoff_put_eu(ST, K):
@@ -13,6 +12,11 @@ def payoff_call_asian(St, K):
 def payoff_put_asian(St, K):
     Avg_path = statistics.mean(St)
     return(max(K - Avg_path, 0))
+def payoff_call_spread(ST, K1, K2):
+    long_call = payoff_call_eu(ST, K1)
+    short_call = payoff_call_eu(ST, K2)
+    return(long_call-short_call)
+
 def d__(St, K, t, T, r, sigma):
     d_1 = (np.log(St / K) + (r + 0.5 * sigma ** 2) * (T-t)) / (sigma * np.sqrt(T-t))
     d_2 = d_1 - sigma * np.sqrt(T-t)

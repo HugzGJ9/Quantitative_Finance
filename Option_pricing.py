@@ -13,11 +13,12 @@ from tkinter import messagebox
 #from ttkthemes import ThemedTk
 from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, delta_option_eu, gamma_option_eu
+from Graphics import display_payoff
 
 
 class Option_eu:
     #root parameter to
-    def __init__(self, type, St, K, t, T, r, sigma, root=None):
+    def __init__(self, type, St, K, t, T, r, sigma, K_2=None, root=None):
         self.type = type
         self.St = St
         self.K = K
@@ -26,7 +27,7 @@ class Option_eu:
         self.r = r
         self.sigma = sigma
         self.N = 100
-
+        self.K_2 = K_2
         if root!= None:
             self.root = root
             self.root.title("European Option Pricing")
@@ -79,12 +80,19 @@ class Option_eu:
             self.result_label = ttk.Label(self.frame, text="", font=("Helvetica", 14))
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
 
+    def display_payoff_option(self):
+        display_payoff(self.type, self.K, self.K_2)
     def option_price_close_formulae(self):
         if self.type == "Call EU":
             option_price = close_formulae_call_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
             return option_price
         elif self.type == "Put EU":
             option_price = close_formulae_put_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
+            return option_price
+        elif self.type == "Call Spread":
+            long_call = close_formulae_call_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
+            short_call = close_formulae_call_eu(self.St, self.K_2, self.t, self.T, self.r, self.sigma)
+            option_price = long_call - short_call
             return option_price
 
     # def solution_BS_DF_Euler_Dirichlet(self):
@@ -208,7 +216,17 @@ if __name__ == '__main__':
     mean = random.random()
     vol = random.random()
 
-    print(mean, vol)
+    Option_eu('Call EU', 100, 95, 0, T, r, vol).display_payoff_option()
+    Option_eu('Put EU', 100, 95, 0, T, r, vol).display_payoff_option()
+    Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).display_payoff_option()
+
+
+
+    Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae()
+
+
+    '''
+    
     St = simu_actif(S0, N, t, T, 0, 0)
     #t = [t_/N for t_ in list(range(0, N, 1))]
     t = np.linspace(0, T-1.0*10**(-4), N+1)
@@ -236,6 +254,9 @@ if __name__ == '__main__':
     plt.plot(vegas_)
     plt.title('Option vega')
     plt.show()
+    
+    '''
+
     # r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     # call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
     # plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
