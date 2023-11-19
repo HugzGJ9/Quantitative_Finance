@@ -158,12 +158,13 @@ class Option_eu:
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
-#class Option_prem_gen(Option_eu):
- #   def __init__(self, type, St, **K, t, T, r, sigma, root=None):
-  #      super().__init__(type, strike_price, expiration_date)
+class Option_prem_gen(Option_eu):
+    def __init__(self, type, St, list:K, t, T, r, sigma, root=None):
+        for strike_price in K:
+            super().__init__(type, strike_price, T)
 
         # Add any additional parameters specific to the first generation option
-   #     self.additional_parameter = additional_parameter
+        self.additional_parameter = additional_parameter
 
 def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
