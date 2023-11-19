@@ -158,8 +158,12 @@ class Option_eu:
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
-class Option_prem_gen(Option_eu):
-    def __init__(self, type, St, K, t, T, r, sigma, K_2=None, root=None):
+#class Option_prem_gen(Option_eu):
+ #   def __init__(self, type, St, **K, t, T, r, sigma, root=None):
+  #      super().__init__(type, strike_price, expiration_date)
+
+        # Add any additional parameters specific to the first generation option
+   #     self.additional_parameter = additional_parameter
 
 def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
@@ -206,7 +210,6 @@ def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     plt.legend(moving_param)
     plt.show()
 
-
 if __name__ == '__main__':
     Nmc = 100
     N = 5
@@ -224,10 +227,21 @@ if __name__ == '__main__':
     Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).display_payoff_option()
     print(Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae())
 
-
-    '''
     
-    St = simu_actif(S0, N, t, T, 0, 0)
+    r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
+    plt.show()
+    plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
+    plt.show()
+    plot_greek_curves_2d('Call EU', 'Vega', K, t, T, r, vol)
+    plt.show()
+    plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
+    plt.show()
+
+    r = 0.1
+
+    St = simu_actif(S0, N, t, T, 0.3, 0.80)
     #t = [t_/N for t_ in list(range(0, N, 1))]
     t = np.linspace(0, T-1.0*10**(-4), N+1)
 
@@ -254,16 +268,6 @@ if __name__ == '__main__':
     plt.plot(vegas_)
     plt.title('Option vega')
     plt.show()
-    
-    '''
-
-    # r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    # call_eu1 = Option_eu('Call EU', St, K, t, T, r, vol)
-    # plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
-    # plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
-    # plot_greek_curves_2d('Call EU', 'Vega', K, t, T, r, vol)
-    # plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
-
 
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
