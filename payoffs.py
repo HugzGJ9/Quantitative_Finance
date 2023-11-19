@@ -12,9 +12,9 @@ def payoff_call_asian(St, K):
 def payoff_put_asian(St, K):
     Avg_path = statistics.mean(St)
     return(max(K - Avg_path, 0))
-def payoff_call_spread(ST, K1, K2):
-    long_call = payoff_call_eu(ST, K1)
-    short_call = payoff_call_eu(ST, K2)
+def payoff_call_spread(ST, K):
+    long_call = payoff_call_eu(ST, K[0])
+    short_call = payoff_call_eu(ST, K[1])
     return(long_call-short_call)
 
 def d__(St, K, t, T, r, sigma):
