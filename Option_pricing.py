@@ -163,16 +163,30 @@ class Option_prem_gen(Option_eu):
         self.T = T
         self.r = r
         self.sigma = sigma
-
+        self.options =[]
+        self.positions = []
         if type == "Call Spread":
             self.long_call = Option_eu("Call EU", St, K[0], t, T, r, sigma)
             self.short_call = Option_eu("Call EU", St, K[1], t, T, r, sigma)
-
-    def option_price_close_formulae(self):
+            self.options = [self.long_call, self.short_call]
+            self.positions = [1, -1] #1 : long position, -1 : short position
+        if type == "Put Spread":
+            self.long_put = Option_eu("Put EU", St, K[0], t, T, r, sigma)
+            self.short_put = Option_eu("Put EU", St, K[1], t, T, r, sigma)
+            self.options = [self.long_put, self.short_put]
+            self.positions = [1, -1]
+    '''def option_price_close_formulae(self):
         if self.type == "Call Spread":
             Call1_price = self.long_call.option_price_close_formulae()
             Call2_price = self.short_call.option_price_close_formulae()
-            return (Call1_price - Call2_price)
+            return (Call1_price - Call2_price)'''
+
+    def option_price_close_formulae(self):
+        price_basket_options = 0
+        for i in range(len(self.options)):
+            price_basket_options+=self.positions[i]*self.options[i].option_price_close_formulae()
+        return price_basket_options
+
     def Delta_DF(self):
         delta_St = 0.00001
         option_delta_St = Option_prem_gen(self.type,self.St+delta_St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
@@ -253,7 +267,7 @@ def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
         for i in St_range:
             option_obj = Option(type_option, i, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
-        plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, False)
+        plot_2d(St_range, greek_list, f"{greek} curve - {type_option}", "Prix de l'actif", greek, False)
     moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
     plt.legend(moving_param)
     plt.show()
@@ -269,8 +283,16 @@ if __name__ == '__main__':
     S0 = 100
 
     option1 = Option_prem_gen('Call Spread', 100, [95, 105], 0, T, r, vol)
-    option1.Delta_DF()
-    option1.option_price_close_formulae()
+    option2 = Option_prem_gen('Put Spread', 100, [95, 105], 0, T, r, vol)
+    #option1.Delta_DF()
+    print(option1.option_price_close_formulae())
+    print(option2.option_price_close_formulae())
+
+    print(option1.Delta_DF())
+    print(option2.Delta_DF())
+    print(option1.Theta_DF())
+    print(option2.Theta_DF())
+
     # mean = random.random()
     # vol = random.random()
 
@@ -280,7 +302,7 @@ if __name__ == '__main__':
     # print(Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae())
 
 
-    r = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    vol = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     plot_greek_curves_2d('Call Spread', 'Delta', [95, 105], t, T, r, vol)
     plt.show()
@@ -295,6 +317,8 @@ if __name__ == '__main__':
     plt.show()
 
     r = 0.1
+    plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
+    plt.show()
 
     St = simu_actif(S0, N, t, T, 0.3, 0.80)
     #t = [t_/N for t_ in list(range(0, N, 1))]
