@@ -14,6 +14,7 @@ from tkinter import messagebox
 from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, delta_option_eu, gamma_option_eu
 from Graphics import display_payoff
+import yfinance as yf
 
 
 class Option_eu:
@@ -175,6 +176,7 @@ class Option_prem_gen(Option_eu):
             self.short_put = Option_eu("Put EU", St, K[1], t, T, r, sigma)
             self.options = [self.long_put, self.short_put]
             self.positions = [1, -1]
+
     '''def option_price_close_formulae(self):
         if self.type == "Call Spread":
             Call1_price = self.long_call.option_price_close_formulae()
@@ -281,6 +283,12 @@ if __name__ == '__main__':
     r = 0.1
     vol = 0.2
     S0 = 100
+
+    apple_stock = yf.Ticker("AAPL")
+    data = yf.download("SPY AAPL", period="1y")
+    apple_stock_df = data['Open']['AAPL']
+    options = apple_stock.option_chain()
+    calls = options.calls
 
     option1 = Option_prem_gen('Call Spread', 100, [95, 105], 0, T, r, vol)
     option2 = Option_prem_gen('Put Spread', 100, [95, 105], 0, T, r, vol)
