@@ -274,6 +274,33 @@ def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     plt.legend(moving_param)
     plt.show()
 
+def Volatilite_implicite(stock_df, option_type, r, plot=True):
+    t = 0
+    # r = 0.0096
+    # r = 0.05
+    T = 1/52
+    S0 = 191.0
+    epsilon = 0.0001
+
+    vol_implicite = []
+    strikes = []
+    for i in range(len(stock_df)):
+        print(i)
+        if stock_df['lastPrice'].iloc[i] < S0 and stock_df['lastPrice'].iloc[i] > max(S0 - stock_df['strike'].iloc[i] * np.exp(-r * T), 0):
+            sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / stock_df['strike'].iloc[i])) / T)
+            option_eu_obj = Option_eu(option_type, S0, stock_df['strike'].iloc[i], t, T, r, sigma)
+            Market_price = stock_df['lastPrice'].iloc[i]
+            # Algorithme de Newton :
+            while np.abs(option_eu_obj.option_price_close_formulae() - Market_price) > epsilon:
+                sigma = sigma - (option_eu_obj.option_price_close_formulae() - Market_price) / option_eu_obj.Vega_DF()
+                print(f'{sigma=}')
+                option_eu_obj = Option_eu(option_type, S0, stock_df['strike'].iloc[i], t, T, r, sigma)
+
+            strikes.append(stock_df['strike'].iloc[i])
+            vol_implicite.append(sigma)
+
+    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot)
+    return [strikes, vol_implicite]
 if __name__ == '__main__':
     Nmc = 100
     N = 5
@@ -289,73 +316,15 @@ if __name__ == '__main__':
     apple_stock_df = data['Open']['AAPL']
     options = apple_stock.option_chain()
     calls = options.calls
+    calls_df = calls[['lastTradeDate', 'strike', 'lastPrice', 'impliedVolatility']]
 
-    option1 = Option_prem_gen('Call Spread', 100, [95, 105], 0, T, r, vol)
-    option2 = Option_prem_gen('Put Spread', 100, [95, 105], 0, T, r, vol)
-    #option1.Delta_DF()
-    print(option1.option_price_close_formulae())
-    print(option2.option_price_close_formulae())
+    # short_rates = [r/100 for r in list(range(1, 10, 2))]
 
-    print(option1.Delta_DF())
-    print(option2.Delta_DF())
-    print(option1.Theta_DF())
-    print(option2.Theta_DF())
+    Volatilite_implicite(calls_df, 'Call EU', 0.01, False)
+    df_vol_strikes = calls_df['strike'].values.tolist()
+    df_vol_impli = calls_df['impliedVolatility'].values.tolist()
 
-    # mean = random.random()
-    # vol = random.random()
-
-    # Option_eu('Call EU', 100, 95, 0, T, r, vol).display_payoff_option()
-    # Option_eu('Put EU', 100, 95, 0, T, r, vol).display_payoff_option()
-    # Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).display_payoff_option()
-    # print(Option_eu('Call Spread', 100, 95, 0, T, r, vol, K_2=105).option_price_close_formulae())
-
-
-    vol = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-
-    plot_greek_curves_2d('Call Spread', 'Delta', [95, 105], t, T, r, vol)
-    plt.show()
-
-    plot_greek_curves_2d('Call EU', 'Delta', K, t, T, r, vol)
-    plt.show()
-    plot_greek_curves_2d('Call EU', 'Gamma', K, t, T, r, vol)
-    plt.show()
-    plot_greek_curves_2d('Call EU', 'Vega', K, t, T, r, vol)
-    plt.show()
-    plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
-    plt.show()
-
-    r = 0.1
-    plot_greek_curves_2d('Call EU', 'Theta', K, t, T, r, vol)
-    plt.show()
-
-    St = simu_actif(S0, N, t, T, 0.3, 0.80)
-    #t = [t_/N for t_ in list(range(0, N, 1))]
-    t = np.linspace(0, T-1.0*10**(-4), N+1)
-
-    plt.plot(St)
-    plt.title('Asset price')
-    plt.show()
-    price_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).option_price_close_formulae() for t_, St_ in zip(t, St)]
-    plt.plot(price_)
-    plt.title('Option price')
-    plt.show()
-    deltas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Delta_DF() for t_, St_ in zip(t, St)]
-    plt.plot(deltas_)
-    plt.title('Option delta')
-    plt.show()
-    gammas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Gamma_DF() for t_, St_ in zip(t, St)]
-    plt.plot(gammas_)
-    plt.title('Option gamma')
-    plt.show()
-    thetas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Theta_DF() for t_, St_ in zip(t, St)]
-    plt.plot(thetas_)
-    plt.title('Option theta')
-    plt.show()
-    vegas_ = [Option_eu('Call EU', St_, K, t_, T, r, vol).Vega_DF() for t_, St_ in zip(t, St)]
-    plt.plot(vegas_)
-    plt.title('Option vega')
-    plt.show()
-
+    plot_2d(df_vol_strikes, df_vol_impli, 'Volatility smile', 'Strike', 'Implied volatility', isShow=True)
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
     # root.mainloop()
