@@ -10,6 +10,7 @@ from Actif_stoch_BS import option_eu_mc
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+
 #from ttkthemes import ThemedTk
 from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, delta_option_eu, gamma_option_eu
@@ -309,7 +310,7 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True):
             strikes.append(options_df['strike'].iloc[i])
             vol_implicite.append(sigma)
 
-    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot, legend=[maturity_dates])
+    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot, legend=maturity_dates)
     result = dict(zip(strikes, vol_implicite))
     return result
 if __name__ == '__main__':
@@ -321,15 +322,15 @@ if __name__ == '__main__':
     vol = 0.2
     S0 = 100
     maturity_date = '2024-02-16'
-    maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29']
-
+    maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
     stock = 'AAPL'
     r = Tresury_bond_13weeks
-
     for maturity_date in maturity_dates:
         implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, False)
     plt.show()
-    implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, True)
+    for maturity_date in maturity_dates:
+        implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, False)
+    plt.show()
     print(Tresury_bond_13weeks)
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
