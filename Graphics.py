@@ -2,12 +2,13 @@ import matplotlib.pyplot as plt
 
 import payoffs
 
-
-def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True):
+def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):
     plt.plot(x_, y_)
     plt.title(titre)
     plt.xlabel(x_axis)
     plt.ylabel(y_axis)
+    if legend:
+        plt.legend(legend)
     if isShow:
         plt.show()
 

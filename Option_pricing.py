@@ -18,6 +18,10 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime
 
+from interest_rates import Tresury_bond_13weeks
+from interest_rates import Tresury_bond_5years
+from interest_rates import Tresury_bond_30years
+
 
 class Option_eu:
     #root parameter to
@@ -276,31 +280,36 @@ def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     plt.legend(moving_param)
     plt.show()
 
-def Volatilite_implicite(stock_df, T, option_type, r, plot=True):
+def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True):
     t = 0
-    # r = 0.0096
-    # r = 0.05
-    S0 = 191.0
     epsilon = 0.0001
+    maturity = pd.Timestamp(maturity_date) - datetime.now()
+    T = maturity.days / 365.6
+    stock_obj = yf.Ticker(stock_name)
+    options = stock_obj.option_chain(maturity_date)
+    S0 = stock_obj.history().tail(1)['Close'].values[0]
+    if option_type == "Call EU":
+        options = options.calls
+    elif option_type == "Put EU":
+        options = options.puts
+    options_df = options[['lastTradeDate', 'strike', 'bid', 'impliedVolatility']]
 
     vol_implicite = []
     strikes = []
-    for i in range(len(stock_df)):
-        print(i)
-        if stock_df['bid'].iloc[i] < S0 and stock_df['bid'].iloc[i] > max(S0 - stock_df['strike'].iloc[i] * np.exp(-r * T), 0):
-            sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / stock_df['strike'].iloc[i])) / T)
-            option_eu_obj = Option_eu(option_type, S0, stock_df['strike'].iloc[i], t, T, r, sigma)
-            Market_price = stock_df['bid'].iloc[i]
+    for i in range(len(options_df)):
+        if options_df['bid'].iloc[i] < S0 and options_df['bid'].iloc[i] > max(S0 - options_df['strike'].iloc[i] * np.exp(-r * T), 0):
+            sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / options_df['strike'].iloc[i])) / T)
+            option_eu_obj = Option_eu(option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
+            Market_price = options_df['bid'].iloc[i]
             # Algorithme de Newton :
             while np.abs(option_eu_obj.option_price_close_formulae() - Market_price) > epsilon:
                 sigma = sigma - (option_eu_obj.option_price_close_formulae() - Market_price) / option_eu_obj.Vega_DF()
-                print(f'{sigma=}')
-                option_eu_obj = Option_eu(option_type, S0, stock_df['strike'].iloc[i], t, T, r, sigma)
+                option_eu_obj = Option_eu(option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
 
-            strikes.append(stock_df['strike'].iloc[i])
+            strikes.append(options_df['strike'].iloc[i])
             vol_implicite.append(sigma)
 
-    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot)
+    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot, legend=[maturity_dates])
     result = dict(zip(strikes, vol_implicite))
     return result
 if __name__ == '__main__':
@@ -309,26 +318,19 @@ if __name__ == '__main__':
     T = 1
     t = 0
     K = 100
-    r = 0.1
     vol = 0.2
     S0 = 100
     maturity_date = '2024-02-16'
-    maturity = pd.Timestamp(maturity_date) - datetime.now()
-    maturity = maturity.days/365.6
-    apple_stock = yf.Ticker("AAPL")
-    data = yf.download("SPY AAPL", period="1y")
-    apple_stock_df = data['Open']['AAPL']
-    options = apple_stock.option_chain(maturity_date)
-    calls = options.calls
-    calls_df = calls[['lastTradeDate', 'strike', 'bid', 'impliedVolatility']]
-    implied_vol_dict = Volatilite_implicite(calls_df, maturity, 'Call EU', 0.01, False)
+    maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29']
 
-    df_vol_strikes = calls_df['strike'].values.tolist()
-    df_vol_impli = calls_df['impliedVolatility'].values.tolist()
+    stock = 'AAPL'
+    r = Tresury_bond_13weeks
 
-    plot_2d(df_vol_strikes, df_vol_impli, 'Volatility smile', 'Strike', 'Implied volatility', isShow=True)
-
-    print(implied_vol_dict[95.0])
+    for maturity_date in maturity_dates:
+        implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, False)
+    plt.show()
+    implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, True)
+    print(Tresury_bond_13weeks)
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
     # root.mainloop()
