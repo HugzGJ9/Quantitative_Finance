@@ -162,7 +162,7 @@ class Option_eu:
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
-class Option_prem_gen(Option_eu):
+class Option_prem_gen():
     def __init__(self, type, St, K, t, T, r, sigma, root=None):
         self.type = type
         self.St = St
@@ -183,7 +183,12 @@ class Option_prem_gen(Option_eu):
             self.short_put = Option_eu("Put EU", St, K[1], t, T, r, sigma)
             self.options = [self.long_put, self.short_put]
             self.positions = [1, -1]
+        if type == "Strangle":
+            self.long_put = Option_eu("Put EU", St, K[0], t, T, r, sigma)
+            self.long_call = Option_eu("Call EU", St, K[1], t, T, r, sigma)
 
+            self.options = [self.long_put, self.long_call]
+            self.positions = [1, 1] #1 : long position, -1 : short position
     '''def option_price_close_formulae(self):
         if self.type == "Call Spread":
             Call1_price = self.long_call.option_price_close_formulae()
@@ -231,10 +236,20 @@ class Option_prem_gen(Option_eu):
 
         theta = (option_delta_t - option_option) / delta_t
         return theta
+
+class position():
+    def __init__(self, options_basket:list)->None:
+        self.basket = options_basket
+        return
+    def append(self, asset:(Option_eu, Option_prem_gen))->None:
+        self.basket.append(asset)
+        return
+    def option_price_close_formulae(self):
+        return sum([option.option_price_close_formulae() for option in self.basket])
 def plot_greek_curves_2d(type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
     Eu_options = ['Call EU', 'Put EU']
-    Option_first_gen = ['Call Spread', 'Put Spread']
+    Option_first_gen = ['Call Spread', 'Put Spread', 'Strangle']
     if type_option in Eu_options:
         Option = Option_eu
     elif type_option in Option_first_gen:
@@ -321,17 +336,36 @@ if __name__ == '__main__':
     K = 100
     vol = 0.2
     S0 = 100
-    maturity_date = '2024-02-16'
-    maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
-    stock = 'AAPL'
-    r = Tresury_bond_13weeks
-    for maturity_date in maturity_dates:
-        implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, False)
+    r = 0.1
+    # maturity_date = '2024-02-16'
+    # maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
+    # stock = 'AAPL'
+    # r = Tresury_bond_13weeks
+    # for maturity_date in maturity_dates:
+    #     implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, False)
+    # plt.show()
+    # for maturity_date in maturity_dates:
+    #     implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, False)
+    # plt.show()
+    # print(Tresury_bond_13weeks)
+    #
+    callEU = Option_eu('Call EU', 100, 95, 0, T, r, vol)
+    PutEU = Option_eu('Put EU', 100, 95, 0, T, r, vol)
+
+    position1 = position([callEU])
+    position1.append(PutEU)
+
+    straddle = Option_prem_gen('Strangle', 100, [95, 95], 0, T, r, vol)
+    T = [0.1, 0.2, 1]
+
+    plot_greek_curves_2d('Strangle', 'Delta', [50, 120], t, T, r, vol)
     plt.show()
-    for maturity_date in maturity_dates:
-        implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, False)
+    plot_greek_curves_2d('Strangle', 'Gamma', [50, 120], t, T, r, vol)
     plt.show()
-    print(Tresury_bond_13weeks)
+    plot_greek_curves_2d('Strangle', 'Vega', [50, 120], t, T, r, vol)
+    plt.show()
+    plot_greek_curves_2d('Strangle', 'Theta', [50, 120], t, T, r, vol)
+    plt.show()
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
     # root.mainloop()
