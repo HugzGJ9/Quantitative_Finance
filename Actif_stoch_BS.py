@@ -1,4 +1,4 @@
-'''2.1 Mod`ele de Black et Scholes.
+'''2.1 Modele de Black et Scholes.
 L’actif sous-jacent St est un processus stochastique S(t), t ∈ [t, T] qui verifie l’´equation différentielle
 stochastique suivante:
 

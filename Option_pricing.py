@@ -23,13 +23,40 @@ from datetime import datetime
 # from interest_rates import Tresury_bond_5years
 # from interest_rates import Tresury_bond_30years
 
-
+class asset_BS():
+    def __init__(self, S0, quantity):
+        self.S0 = S0
+        self.St = S0
+        self.quantity = quantity
+        self.history = [S0]
+        self.mu = 0.1
+        self.sigma = 0.2
+        self.t = 0
+    def simu_asset(self, T)->None:
+        St = simu_actif(self.St, N, self.t, T, self.mu, self.sigma)
+        St.pop(0)
+        for st in St:
+            self.history.append(st)
+        self.St = self.history[-1]
+    def pnl(self)->float:
+        return self.St - self.S0
+    def plot(self):
+        plot_2d(list(range(len(self.history))), self.history, x_axis='t', y_axis='asset price', isShow=True)
+    def Delta_DF(self):
+        return 1*self.quantity
+    def Gamma_DF(self):
+        return 0
+    def Vega_DF(self):
+        return 0
+    def Theta_DF(self):
+        return 0
 class Option_eu:
     #root parameter to
-    def __init__(self, position, type, St, K, t, T, r, sigma, root=None):
+    def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
         self.position = position
+        self.asset = asset
         self.type = type
-        self.St = St
+        self.St = asset.St
         self.K = K
         self.t = t
         self.T = T
@@ -102,7 +129,6 @@ class Option_eu:
         #     short_call = close_formulae_call_eu(self.St, self.K_2, self.t, self.T, self.r, self.sigma)
         #     option_price = long_call - short_call
         #     return option_price
-
     def option_price_mc(self):
         prix_option = 0
         Nmc = 100000
@@ -122,52 +148,62 @@ class Option_eu:
         return self.position*prix_option
 
     # def Delta(self):
-    #     option_delta = (delta_option_eu(self.position, self.type, self.St, self.K, self.t, self.T, self.r, self.sigma))
+    #     option_delta = (delta_option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r, self.sigma))
     #     return option_delta
     def Delta_DF(self):
         delta_St = 0.00001
-        option_delta_St = Option_eu(self.position, self.type,self.St+delta_St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        option_delta_St = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
         delta = (option_delta_St - option_option)/delta_St
         return delta
     # def Gamma(self):
-    #     option_gamma = (gamma_option_eu(self.position, self.type, self.St, self.K, self.t, self.T, self.r, self.sigma))
+    #     option_gamma = (gamma_option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r, self.sigma))
     #     return option_gamma
     def Gamma_DF(self):
         delta_St = 0.00001
-        option_gamma_plus = Option_eu(self.position, self.type, self.St + delta_St, self.K, self.t, self.T, self.r,
+        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        asset_delta_neg = asset_BS(self.St - delta_St, self.asset.quantity)
+        option_gamma_plus = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
                                       self.sigma).option_price_close_formulae()
-        option_gamma_minus = Option_eu(self.position, self.type, self.St - delta_St, self.K, self.t, self.T, self.r,
+        option_gamma_minus = Option_eu(self.position, self.type, asset_delta_neg, self.K, self.t, self.T, self.r,
                                        self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
     def Vega_DF(self):
         delta_vol = 0.00001
-        option_delta_vol = Option_eu(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                     self.sigma+delta_vol).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                   self.sigma).option_price_close_formulae()
 
         vega = (option_delta_vol - option_option) / delta_vol
         return vega
     def Theta_DF(self):
         delta_t = 0.00001
-        option_delta_t = Option_eu(self.position, self.type, self.St, self.K, self.t+delta_t, self.T, self.r,
+        option_delta_t = Option_eu(self.position, self.type, self.asset, self.K, self.t+delta_t, self.T, self.r,
                                     self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                   self.sigma).option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
         return theta
 
-class Option_prem_gen():
-    def __init__(self, position, type, St, K, t, T, r, sigma, root=None):
+    def simu_asset(self, time):
+        self.asset.simu_asset(time)
+        self.St = self.asset.history[-1]
+        self.t = self.t + time
+
+
+class Option_prem_gen(Option_eu):
+    def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
         self.position = position
         self.type = type
-        self.St = St
+        self.asset = asset
+        self.St = asset.St
         self.K = K
         self.t = t
         self.T = T
@@ -176,21 +212,21 @@ class Option_prem_gen():
         self.options =[]
         self.positions = []
         if type == "Call Spread":
-            self.long_call = Option_eu(1, "Call EU", St, K[0], t, T, r, sigma)
-            self.short_call = Option_eu(-1, "Call EU", St, K[1], t, T, r, sigma)
+            self.long_call = Option_eu(1, "Call EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
+            self.short_call = Option_eu(-1, "Call EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
             self.options = [self.long_call, self.short_call]
             self.positions = [1, -1] #1 : long position, -1 : short position
             self.positions = [i*self.position for i in self.positions]
         if type == "Put Spread":
-            self.long_put = Option_eu(1, "Put EU", St, K[0], t, T, r, sigma)
-            self.short_put = Option_eu(-1, "Put EU", St, K[1], t, T, r, sigma)
+            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
+            self.short_put = Option_eu(-1, "Put EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
             self.options = [self.long_put, self.short_put]
             self.positions = [1, -1]
             self.positions = [i*self.position for i in self.positions]
 
         if type == "Strangle":
-            self.long_put = Option_eu(1, "Put EU", St, K[0], t, T, r, sigma)
-            self.long_call = Option_eu(1, "Call EU", St, K[1], t, T, r, sigma)
+            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
+            self.long_call = Option_eu(1, "Call EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
             self.options = [self.long_put, self.long_call]
             self.positions = [1, 1] #1 : long position, -1 : short position
             self.positions = [i*self.position for i in self.positions]
@@ -205,53 +241,76 @@ class Option_prem_gen():
         price_basket_options = 0
         for i in range(len(self.options)):
             price_basket_options+=self.positions[i]*self.options[i].option_price_close_formulae()
-        return self.position*price_basket_options
+        return price_basket_options
 
     def Delta_DF(self):
         delta_St = 0.00001
-        option_delta_St = Option_prem_gen(self.position, self.type,self.St+delta_St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type,self.St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        option_delta_St = Option_prem_gen(self.position, self.type,asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_prem_gen(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
         delta = (option_delta_St - option_option)/delta_St
         return delta
     def Gamma_DF(self):
         delta_St = 0.00001
-        option_gamma_plus = Option_prem_gen(self.position, self.type, self.St + delta_St, self.K, self.t, self.T, self.r,
+        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        asset_delta_neg = asset_BS(self.St - delta_St, self.asset.quantity)
+
+        option_gamma_plus = Option_prem_gen(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
                                       self.sigma).option_price_close_formulae()
-        option_gamma_minus = Option_prem_gen(self.position, self.type, self.St - delta_St, self.K, self.t, self.T, self.r,
+        option_gamma_minus = Option_prem_gen(self.position, self.type, asset_delta_neg, self.K, self.t, self.T, self.r,
                                        self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type,self.St, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_prem_gen(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
     def Vega_DF(self):
         delta_vol = 0.00001
-        option_delta_vol = Option_prem_gen(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_delta_vol = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                     self.sigma+delta_vol).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_option = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                   self.sigma).option_price_close_formulae()
 
         vega = (option_delta_vol - option_option) / delta_vol
         return vega
     def Theta_DF(self):
         delta_t = 0.00001
-        option_delta_t = Option_prem_gen(self.position, self.type, self.St, self.K, self.t+delta_t, self.T, self.r,
+        option_delta_t = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t+delta_t, self.T, self.r,
                                     self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type, self.St, self.K, self.t, self.T, self.r,
+        option_option = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
                                   self.sigma).option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
         return theta
+    def simu_asset(self, time):
+        self.asset.simu_asset(time)
+        self.St = self.asset.history[-1]
+        self.t = self.t + time
+        for option in self.options:
+            option.St = self.St
+            option.t = self.t
 
-class position():
+class Book():
     def __init__(self, options_basket:list)->None:
         self.basket = options_basket
         return
     def append(self, asset:(Option_eu, Option_prem_gen))->None:
         self.basket.append(asset)
         return
+    #def remove(self, ):
     def option_price_close_formulae(self):
-        return sum([option.option_price_close_formulae() for option in self.basket])
+        return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket])
+    def Delta_DF(self):
+        return sum([option.Delta_DF() for option in self.basket])
+    def Gamma_DF(self):
+        return sum([option.Gamma_DF() for option in self.basket])
+    def Vega_DF(self):
+        return sum([option.Vega_DF() for option in self.basket])
+    def Theta_DF(self):
+        return sum([option.Theta_DF() for option in self.basket])
+    def simu_asset(self, time):
+        for item in self.basket:
+            item.simu_asset(time)
 def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
     Eu_options = ['Call EU', 'Put EU']
@@ -281,9 +340,10 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     else:
         greek_list = []
         for i in St_range:
-            option_obj = Option(position, type_option, i, K, t_, T, r, vol)
+            asset = asset_BS(i, 0)
+            option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
-        greek_list = [i*position for i in greek_list]
+        #greek_list = [i*position for i in greek_list]
         plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, True)
         return
 
@@ -296,7 +356,8 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
             r = v
         greek_list = []
         for i in St_range:
-            option_obj = Option(position, type_option, i, K, t_, T, r, vol)
+            asset = asset_BS(i, 0)
+            option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
         greek_list = [i*position for i in greek_list]
         plot_2d(St_range, greek_list, f"{greek} curve - {type_option}", "Prix de l'actif", greek, False)
@@ -323,12 +384,12 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True):
     for i in range(len(options_df)):
         if options_df['bid'].iloc[i] < S0 and options_df['bid'].iloc[i] > max(S0 - options_df['strike'].iloc[i] * np.exp(-r * T), 0):
             sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / options_df['strike'].iloc[i])) / T)
-            option_eu_obj = Option_eu(position, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
+            option_eu_obj = Option_eu(Book, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
             Market_price = options_df['bid'].iloc[i]
             # Algorithme de Newton :
             while np.abs(option_eu_obj.option_price_close_formulae() - Market_price) > epsilon:
                 sigma = sigma - (option_eu_obj.option_price_close_formulae() - Market_price) / option_eu_obj.Vega_DF()
-                option_eu_obj = Option_eu(position, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
+                option_eu_obj = Option_eu(Book, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
 
             strikes.append(options_df['strike'].iloc[i])
             vol_implicite.append(sigma)
@@ -363,10 +424,35 @@ if __name__ == '__main__':
     # plot_greek_curves_2d(1, 'Strangle', 'Delta', [50, 120], t, T, r, vol)
     # plt.show()
     #
-    # position1 = position([callEU])
     # position1.append(PutEU)
+    T = 2
+    stock1 = asset_BS(100, 0)
+    callEU = Option_eu(10, 'Call EU', stock1, 95, 0, T, r, vol)
+    book1 = Book([callEU, stock1])
+    strangle = Option_prem_gen(-1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
 
-    straddle = Option_prem_gen(1, 'Strangle', 100, [50, 120], 0, T, r, vol)
+    print('book greeks')
+    print(book1.Delta_DF())
+    print(book1.Gamma_DF())
+    print(book1.Theta_DF())
+    print(f'book price = {book1.option_price_close_formulae()}')
+    print(f'stock price = {book1.basket[0].St}')
+    book1.simu_asset(1)
+    print('asset evolution done')
+    print(f'book price = {book1.option_price_close_formulae()}')
+    print(f'stock price = {book1.basket[0].St}')
+    print(book1.Delta_DF())
+    print(book1.Gamma_DF())
+    print(book1.Theta_DF())
+
+    plot_greek_curves_2d(-1, 'Call EU', 'Theta', 95, t, T, r, vol)
+    plt.show()
+
+    straddle = Option_prem_gen(1, 'Strangle', stock1, [95, 95], 0, T, r, vol)
+
+    straddle.option_price_close_formulae()
+    stock1.simu_asset(1)
+
     T = [0.1, 0.2, 1]
 
     plot_greek_curves_2d(-1, 'Strangle', 'Delta', [50, 120], t, T, r, vol)
@@ -377,6 +463,12 @@ if __name__ == '__main__':
     plt.show()
     plot_greek_curves_2d(-1,'Strangle', 'Theta', [50, 120], t, T, r, vol)
     plt.show()
+    #to activate the user interface
+    # root = ThemedTk(theme="breeze")
+    # root.mainloop()
+
+      # Choose your preferred theme
+
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
     # root.mainloop()
