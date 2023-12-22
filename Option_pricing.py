@@ -56,7 +56,6 @@ class Option_eu:
         self.position = position
         self.asset = asset
         self.type = type
-        self.St = asset.St
         self.K = K
         self.t = t
         self.T = T
@@ -84,11 +83,11 @@ class Option_eu:
             self.option_type_combobox = ttk.Combobox(self.frame, textvariable=self.option_type_var, values=["Call EU", "Put EU", "Call Asian", "Put Asian"])
             self.option_type_combobox.grid(row=1, column=1, pady=5)
 
-            self.St_label = ttk.Label(self.frame, text="Current Stock Price:")
-            self.St_label.grid(row=2, column=0, sticky="w")
+            self.asset.St_label = ttk.Label(self.frame, text="Current Stock Price:")
+            self.asset.St_label.grid(row=2, column=0, sticky="w")
 
-            self.St_entry = ttk.Entry(self.frame)
-            self.St_entry.grid(row=2, column=1, pady=5)
+            self.asset.St_entry = ttk.Entry(self.frame)
+            self.asset.St_entry.grid(row=2, column=1, pady=5)
 
             self.K_label = ttk.Label(self.frame, text="Strike Price:")
             self.K_label.grid(row=3, column=0, sticky="w")
@@ -119,21 +118,21 @@ class Option_eu:
         display_payoff(self.type, self.K)
     def option_price_close_formulae(self):
         if self.type == "Call EU":
-            option_price = close_formulae_call_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
+            option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
             return self.position*option_price
         elif self.type == "Put EU":
-            option_price = close_formulae_put_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
+            option_price = close_formulae_put_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
             return self.position*option_price
         # elif self.type == "Call Spread":
-        #     long_call = close_formulae_call_eu(self.St, self.K, self.t, self.T, self.r, self.sigma)
-        #     short_call = close_formulae_call_eu(self.St, self.K_2, self.t, self.T, self.r, self.sigma)
+        #     long_call = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
+        #     short_call = close_formulae_call_eu(self.asset.St, self.K_2, self.t, self.T, self.r, self.sigma)
         #     option_price = long_call - short_call
         #     return option_price
     def option_price_mc(self):
         prix_option = 0
         Nmc = 100000
         for i in range(Nmc):
-            prix_actif = simu_actif(self.St, self.K, self.t, self.T, self.r, self.sigma)
+            prix_actif = simu_actif(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
             elif self.type == "Put EU":
@@ -152,7 +151,7 @@ class Option_eu:
     #     return option_delta
     def Delta_DF(self):
         delta_St = 0.00001
-        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
         option_delta_St = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
         option_option = Option_eu(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
@@ -163,8 +162,8 @@ class Option_eu:
     #     return option_gamma
     def Gamma_DF(self):
         delta_St = 0.00001
-        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
-        asset_delta_neg = asset_BS(self.St - delta_St, self.asset.quantity)
+        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
+        asset_delta_neg = asset_BS(self.asset.St - delta_St, self.asset.quantity)
         option_gamma_plus = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
                                       self.sigma).option_price_close_formulae()
         option_gamma_minus = Option_eu(self.position, self.type, asset_delta_neg, self.K, self.t, self.T, self.r,
@@ -194,7 +193,7 @@ class Option_eu:
 
     def simu_asset(self, time):
         self.asset.simu_asset(time)
-        self.St = self.asset.history[-1]
+        #self.asset.St = self.asset.history[-1]
         self.t = self.t + time
 
 
@@ -203,7 +202,7 @@ class Option_prem_gen(Option_eu):
         self.position = position
         self.type = type
         self.asset = asset
-        self.St = asset.St
+        self.asset.St = asset.St
         self.K = K
         self.t = t
         self.T = T
@@ -241,11 +240,11 @@ class Option_prem_gen(Option_eu):
         price_basket_options = 0
         for i in range(len(self.options)):
             price_basket_options+=self.positions[i]*self.options[i].option_price_close_formulae()
-        return price_basket_options
+        return self.position*price_basket_options
 
     def Delta_DF(self):
         delta_St = 0.00001
-        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
+        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
         option_delta_St = Option_prem_gen(self.position, self.type,asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
         option_option = Option_prem_gen(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
 
@@ -253,8 +252,8 @@ class Option_prem_gen(Option_eu):
         return delta
     def Gamma_DF(self):
         delta_St = 0.00001
-        asset_delta = asset_BS(self.St + delta_St, self.asset.quantity)
-        asset_delta_neg = asset_BS(self.St - delta_St, self.asset.quantity)
+        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
+        asset_delta_neg = asset_BS(self.asset.St - delta_St, self.asset.quantity)
 
         option_gamma_plus = Option_prem_gen(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
                                       self.sigma).option_price_close_formulae()
@@ -284,10 +283,9 @@ class Option_prem_gen(Option_eu):
         return theta
     def simu_asset(self, time):
         self.asset.simu_asset(time)
-        self.St = self.asset.history[-1]
+        #self.asset.St = self.asset.history[-1]
         self.t = self.t + time
         for option in self.options:
-            option.St = self.St
             option.t = self.t
 
 class Book():
@@ -309,7 +307,8 @@ class Book():
     def Theta_DF(self):
         return sum([option.Theta_DF() for option in self.basket])
     def simu_asset(self, time):
-        for item in self.basket:
+        list_asset = list(set([x.asset for x in self.basket]))
+        for item in list_asset:
             item.simu_asset(time)
 def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     St_range = range(20, 180, 1)
@@ -427,8 +426,11 @@ if __name__ == '__main__':
     # position1.append(PutEU)
     T = 2
     stock1 = asset_BS(100, 0)
-    callEU = Option_eu(10, 'Call EU', stock1, 95, 0, T, r, vol)
-    book1 = Book([callEU, stock1])
+    callEU = Option_eu(1, 'Call EU', stock1, 95, 0, T, r, vol)
+    callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
+
+    book1 = Book([callEU, callEU2])
+    book1.simu_asset(1)
     strangle = Option_prem_gen(-1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
 
     print('book greeks')
