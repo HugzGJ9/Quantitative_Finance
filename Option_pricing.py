@@ -18,6 +18,10 @@ from Graphics import display_payoff
 import yfinance as yf
 import pandas as pd
 from datetime import datetime
+
+from sandbox import keep_after_dash, keep_before_dash
+
+
 #
 # from interest_rates import Tresury_bond_13weeks
 # from interest_rates import Tresury_bond_5years
@@ -33,7 +37,7 @@ class asset_BS():
         self.sigma = 0.2
         self.t = 0
     def simu_asset(self, T)->None:
-        St = simu_actif(self.St, N, self.t, T, self.mu, self.sigma)
+        St = simu_actif(self.St, T, self.t, T, self.mu, self.sigma)
         St.pop(0)
         for st in St:
             self.history.append(st)
@@ -180,7 +184,7 @@ class Option_eu:
                                   self.sigma).option_price_close_formulae()
 
         vega = (option_delta_vol - option_option) / delta_vol
-        return vega
+        return vega/100
     def Theta_DF(self):
         delta_t = 0.00001
         option_delta_t = Option_eu(self.position, self.type, self.asset, self.K, self.t+delta_t, self.T, self.r,
@@ -189,12 +193,12 @@ class Option_eu:
                                   self.sigma).option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
-        return theta
+        return theta/365.6
 
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
-        self.t = self.t + time
+        self.t = self.t + time/365.6
 
 
 class Option_prem_gen(Option_eu):
@@ -213,22 +217,30 @@ class Option_prem_gen(Option_eu):
         if type == "Call Spread":
             self.long_call = Option_eu(1, "Call EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
             self.short_call = Option_eu(-1, "Call EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
-            self.options = [self.long_call, self.short_call]
             self.positions = [1, -1] #1 : long position, -1 : short position
             self.positions = [i*self.position for i in self.positions]
+            self.long_call.position = self.positions[0]
+            self.short_call.position = self.positions[1]
+            self.options = [self.long_call, self.short_call]
+
         if type == "Put Spread":
             self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
             self.short_put = Option_eu(-1, "Put EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
-            self.options = [self.long_put, self.short_put]
             self.positions = [1, -1]
             self.positions = [i*self.position for i in self.positions]
+            self.long_put.position = self.positions[0]
+            self.short_put.position = self.positions[1]
+            self.options = [self.long_put, self.short_put]
 
         if type == "Strangle":
             self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
             self.long_call = Option_eu(1, "Call EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
-            self.options = [self.long_put, self.long_call]
             self.positions = [1, 1] #1 : long position, -1 : short position
             self.positions = [i*self.position for i in self.positions]
+            self.long_put.position = self.positions[0]
+            self.long_call.position = self.positions[1]
+            self.options = [self.long_put, self.long_call]
+
 
     '''def option_price_close_formulae(self):
         if self.type == "Call Spread":
@@ -243,63 +255,51 @@ class Option_prem_gen(Option_eu):
         return self.position*price_basket_options
 
     def Delta_DF(self):
-        delta_St = 0.00001
-        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        option_delta_St = Option_prem_gen(self.position, self.type,asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-
-        delta = (option_delta_St - option_option)/delta_St
+        delta = 0
+        for option in self.options:
+            delta+= option.Delta_DF()
         return delta
     def Gamma_DF(self):
-        delta_St = 0.00001
-        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        asset_delta_neg = asset_BS(self.asset.St - delta_St, self.asset.quantity)
-
-        option_gamma_plus = Option_prem_gen(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
-                                      self.sigma).option_price_close_formulae()
-        option_gamma_minus = Option_prem_gen(self.position, self.type, asset_delta_neg, self.K, self.t, self.T, self.r,
-                                       self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-
-        gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
+        gamma = 0
+        for option in self.options:
+            gamma += option.Gamma_DF()
         return gamma
     def Vega_DF(self):
-        delta_vol = 0.00001
-        option_delta_vol = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
-                                    self.sigma+delta_vol).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
-                                  self.sigma).option_price_close_formulae()
-
-        vega = (option_delta_vol - option_option) / delta_vol
+        vega = 0
+        for option in self.options:
+            vega += option.Vega_DF()
         return vega
     def Theta_DF(self):
-        delta_t = 0.00001
-        option_delta_t = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t+delta_t, self.T, self.r,
-                                    self.sigma).option_price_close_formulae()
-        option_option = Option_prem_gen(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
-                                  self.sigma).option_price_close_formulae()
-
-        theta = (option_delta_t - option_option) / delta_t
+        theta = 0
+        for option in self.options:
+            theta += option.Theta_DF()
         return theta
     def simu_asset(self, time):
         self.asset.simu_asset(time)
-        #self.asset.St = self.asset.history[-1]
-        self.t = self.t + time
+        #self.asset.St = self.asset.history[-1] a reprendre, simuler les sous jacents (list of unique)
+        self.t = self.t + time/365
         for option in self.options:
             option.t = self.t
 
 class Book():
-    def __init__(self, options_basket:list)->None:
+    def __init__(self, options_basket:list, asset=None)->None:
         self.basket = options_basket
+        self.asset = asset
         return
-    def append(self, asset:(Option_eu, Option_prem_gen))->None:
-        self.basket.append(asset)
+    def append(self, option:(Option_eu, Option_prem_gen))->None:
+        self.basket.append(option)
+        return
+    def delta_hedge(self, asset:asset_BS):
+        if not isinstance(asset, asset_BS):
+            raise TypeError("asset must be of type asset_BS")
+        self.asset = asset
         return
     #def remove(self, ):
     def option_price_close_formulae(self):
         return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket])
     def Delta_DF(self):
-        return sum([option.Delta_DF() for option in self.basket])
+        hedge = self.asset.quantity if self.asset != None else 0
+        return sum([option.Delta_DF() for option in self.basket]) + hedge
     def Gamma_DF(self):
         return sum([option.Gamma_DF() for option in self.basket])
     def Vega_DF(self):
@@ -364,36 +364,56 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     plt.legend(moving_param)
     plt.show()
 
-def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True):
+def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, isCrypto=False):
     t = 0
     epsilon = 0.0001
     maturity = pd.Timestamp(maturity_date) - datetime.now()
     T = maturity.days / 365.6
     stock_obj = yf.Ticker(stock_name)
-    options = stock_obj.option_chain(maturity_date)
     S0 = stock_obj.history().tail(1)['Close'].values[0]
-    if option_type == "Call EU":
-        options = options.calls
-    elif option_type == "Put EU":
-        options = options.puts
-    options_df = options[['lastTradeDate', 'strike', 'bid', 'impliedVolatility']]
 
+    if not isCrypto:
+        options = stock_obj.option_chain(maturity_date)
+        if option_type == "Call EU":
+            options = options.calls
+        elif option_type == "Put EU":
+            options = options.puts
+        options_df = options[['lastTradeDate', 'strike', 'bid', 'impliedVolatility']]
+    else:
+        options_df = pd.read_excel('Data_option_crypto/BTCUSD.xlsx')
+        options_df['matu'] = options_df['strike'].apply(keep_before_dash)
+        options_df = options_df[options_df['matu'] == pd.Timestamp(maturity_date)]
+        options_df['strike'] = options_df['strike'].apply(keep_after_dash)
+        options_df = options_df[options_df['volume_contracts'] > 0.0]
+        if option_type == "Call EU":
+            options_df = options_df[options_df['type']=='C']
+        elif option_type == "Put EU":
+            options_df = options_df[options_df['type']=='P']
+
+        options_df['bid'] = options_df['best_bid_price']
+        options_df['ask'] = options_df['best_ask_price']
+
+        options_df = options_df[['strike', 'bid', 'ask']]
+        options_df = options_df.groupby('strike').mean()
+        options_df['strike'] = options_df.index
+
+    asset = asset_BS(S0, 0)
     vol_implicite = []
     strikes = []
     for i in range(len(options_df)):
-        if options_df['bid'].iloc[i] < S0 and options_df['bid'].iloc[i] > max(S0 - options_df['strike'].iloc[i] * np.exp(-r * T), 0):
-            sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / options_df['strike'].iloc[i])) / T)
-            option_eu_obj = Option_eu(Book, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
+        if options_df['bid'].iloc[i] < S0 and options_df['bid'].iloc[i] > max(S0 - int(options_df['strike'].iloc[i]) * np.exp(-r * T), 0):
+            sigma = np.sqrt(2 * np.abs(np.log(r * T + S0 / int(options_df['strike'].iloc[i]))) / T)
+            option_eu_obj = Option_eu(1, option_type, asset, int(options_df['strike'].iloc[i]), t, T, r, sigma)
             Market_price = options_df['bid'].iloc[i]
             # Algorithme de Newton :
             while np.abs(option_eu_obj.option_price_close_formulae() - Market_price) > epsilon:
                 sigma = sigma - (option_eu_obj.option_price_close_formulae() - Market_price) / option_eu_obj.Vega_DF()
-                option_eu_obj = Option_eu(Book, option_type, S0, options_df['strike'].iloc[i], t, T, r, sigma)
+                option_eu_obj = Option_eu(1, option_type, asset, int(options_df['strike'].iloc[i]), t, T, r, sigma)
 
-            strikes.append(options_df['strike'].iloc[i])
+            strikes.append(int(options_df['strike'].iloc[i]))
             vol_implicite.append(sigma)
 
-    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot, legend=maturity_dates)
+    plot_2d(strikes, vol_implicite, 'Volatility smile', 'Strike', 'Implied volatility', isShow=plot)
     result = dict(zip(strikes, vol_implicite))
     return result
 if __name__ == '__main__':
@@ -405,12 +425,12 @@ if __name__ == '__main__':
     vol = 0.2
     S0 = 100
     r = 0.1
-    # maturity_date = '2024-02-16'
+    maturity_date = '2024-09-27'
     # maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
-    # stock = 'AAPL'
+    stock_name = 'BTC-USD'
     # r = Tresury_bond_13weeks
     # for maturity_date in maturity_dates:
-    #     implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, False)
+    #implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, True, True)
     # plt.show()
     # for maturity_date in maturity_dates:
     #     implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Put EU', r, False)
@@ -424,13 +444,17 @@ if __name__ == '__main__':
     # plt.show()
     #
     # position1.append(PutEU)
-    T = 2
-    stock1 = asset_BS(100, 0)
-    callEU = Option_eu(1, 'Call EU', stock1, 95, 0, T, r, vol)
-    callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
+    T = 1
+    vol_implied = 0.6
+    strike = 35000
+    stock_obj = yf.Ticker(stock_name)
+    S0 = stock_obj.history().tail(1)['Close'].values[0]
+    stock1 = asset_BS(S0, 0)
+    callEU = Option_eu(1, 'Call EU', stock1, strike, 0, T, r, vol_implied)
+    #callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
+    #book1 = Book([callEU])
 
-    book1 = Book([callEU, callEU2])
-    book1.simu_asset(1)
+    #book1.simu_asset(1)
     strangle = Option_prem_gen(-1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
 
     print('book greeks')
