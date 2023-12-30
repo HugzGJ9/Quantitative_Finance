@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-
 import payoffs
 
 def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):
@@ -33,3 +32,5 @@ def display_payoff(Option_type, Strike):
     for i in ST:
         payoff.append(payoff_function(i, Strike))
     plot_2d(ST, payoff, f"{Option_type} payoff", "Asset price", "Payoff", isShow=True)
+
+
