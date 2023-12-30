@@ -19,7 +19,7 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime
 
-from sandbox import keep_after_dash, keep_before_dash
+from toolbox import keep_after_dash, keep_before_dash
 
 
 #
