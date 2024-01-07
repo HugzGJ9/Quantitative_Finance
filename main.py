@@ -1,7 +1,5 @@
-
 import matplotlib.pyplot as plt
 import yfinance as yf
-
 from Asset_class import asset_BS
 from Options_class import Option_eu, Option_prem_gen, plot_greek_curves_2d
 from Book_class import Book
