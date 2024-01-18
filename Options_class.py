@@ -1,3 +1,4 @@
+import numpy as np
 from matplotlib import pyplot as plt
 
 from Asset_class import asset_BS
@@ -5,7 +6,7 @@ from Actif_stoch_BS import simu_actif
 import tkinter as tk
 from tkinter import ttk
 
-from Graphics import display_payoff, plot_2d
+from Graphics import display_payoff_eu, plot_2d
 from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, close_formulae_put_eu, delta_option_eu, gamma_option_eu
 class Option_eu:
     #root parameter to
@@ -72,7 +73,7 @@ class Option_eu:
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
 
     def display_payoff_option(self):
-        display_payoff(self.type, self.K)
+        display_payoff_eu(self.type, self.K)
     def option_price_close_formulae(self):
         if self.type == "Call EU":
             option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
@@ -200,7 +201,14 @@ class Option_prem_gen(Option_eu):
             Call1_price = self.long_call.option_price_close_formulae()
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
+    def display_payoff_option(self):
+        payoffs = []
+        for option, k in zip(self.options, self.K):
+            ST, payoff = display_payoff_eu(option.type, k, plot=False)
+            payoffs.append([payoff_ * self.position for payoff_ in payoff])
 
+        final_payoff = [list(sum(x) for x in zip(*tuples)) for tuples in zip(payoffs)][0]
+        plot_2d(ST, final_payoff, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
     def option_price_close_formulae(self):
         price_basket_options = 0
         for i in range(len(self.options)):

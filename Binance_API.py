@@ -50,12 +50,11 @@ if __name__ == '__main__':
     # depth cache manager using threads
     dcm = ThreadedDepthCacheManager()
     dcm.start()
-    twm.start_kline_socket(callback=handle_socket_message, symbol='BNBBTC')
+    twm.start_kline_socket(callback=handle_socket_message, symbol='BTCUSDT')
 
-    dcm.start_depth_cache(callback=handle_dcm_message, symbol='ETHBTC')
-
+    dcm.start_depth_cache(callback=handle_dcm_message, symbol='BTCUSDT')
     # replace with a current options symbol
-    options_symbol = 'BTC-230430-36000-C'
+    options_symbol = 'BTC-241227-38000-C'
     dcm.start_options_depth_cache(callback=handle_dcm_message, symbol=options_symbol)
 
     # join the threaded managers to the main thread

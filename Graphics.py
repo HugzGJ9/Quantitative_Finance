@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import payoffs
 
+
 def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):
     plt.plot(x_, y_)
     plt.title(titre)
@@ -11,14 +12,12 @@ def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):
     if isShow:
         plt.show()
 
-def display_payoff(Option_type, Strike):
+def display_payoff_eu(Option_type, Strike, plot=True):
 
     if Option_type == "Call EU":
         payoff_function = payoffs.payoff_call_eu
     elif Option_type == "Put EU":
         payoff_function = payoffs.payoff_put_eu
-    elif Option_type == "Call Spread":
-        payoff_function = payoffs.payoff_call_spread
 
     if type(Strike) == list:
         start = min(Strike)*0.5
@@ -31,6 +30,7 @@ def display_payoff(Option_type, Strike):
 
     for i in ST:
         payoff.append(payoff_function(i, Strike))
-    plot_2d(ST, payoff, f"{Option_type} payoff", "Asset price", "Payoff", isShow=True)
+    plot_2d(ST, payoff, f"{Option_type} payoff", "Asset price", "Payoff", isShow=plot)
 
+    return [ST, payoff]
 

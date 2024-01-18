@@ -17,6 +17,11 @@ def payoff_call_spread(ST, K):
     short_call = payoff_call_eu(ST, K[1])
     return(long_call-short_call)
 
+def payoff_call_spread(ST, K):
+    long_call = payoff_call_eu(ST, K[0])
+    short_call = payoff_call_eu(ST, K[1])
+    return(long_call-short_call)
+
 def d__(St, K, t, T, r, sigma):
     d_1 = (np.log(St / K) + (r + 0.5 * sigma ** 2) * (T-t)) / (sigma * np.sqrt(T-t))
     d_2 = d_1 - sigma * np.sqrt(T-t)
