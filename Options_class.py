@@ -74,9 +74,9 @@ class Option_eu:
     def get_payoff_option(self, ST:int)->int:
 
         if self.type == "Call EU":
-            payoff = max(ST - self.K, 0) * self.position
+            payoff = payoff_call_eu(ST, self.K) * self.position
         elif self.type == "Put EU":
-            payoff =(max(self.K - ST, 0) * self.position)
+            payoff = payoff_put_eu(ST, self.K) * self.position
         return payoff
     def display_payoff_option(self):
         start = self.K*0.5
