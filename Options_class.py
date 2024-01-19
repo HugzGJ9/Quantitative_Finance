@@ -71,9 +71,21 @@ class Option_eu:
 
             self.result_label = ttk.Label(self.frame, text="", font=("Helvetica", 14))
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
+    def get_payoff_option(self, ST:int)->int:
 
+        if self.type == "Call EU":
+            payoff = max(ST - self.K, 0) * self.position
+        elif self.type == "Put EU":
+            payoff =(max(self.K - ST, 0) * self.position)
+        return payoff
     def display_payoff_option(self):
-        display_payoff_eu(self.type, self.K)
+        start = self.K*0.5
+        end = self.K*1.5
+        ST = list(range(round(start), round(end)))
+        payoffs = []
+        for i in ST:
+            payoffs.append(self.get_payoff_option(i))
+        plot_2d(ST, payoffs, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
     def option_price_close_formulae(self):
         if self.type == "Call EU":
             option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
@@ -201,14 +213,24 @@ class Option_prem_gen(Option_eu):
             Call1_price = self.long_call.option_price_close_formulae()
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
+    def get_payoff_option(self, ST:int)->int:
+        payoff = []
+        for option in self.options:
+            if option.type == "Call EU":
+                payoff.append(max(ST-option.K, 0) * option.position)
+            elif option.type == "Put EU":
+                payoff.append(max(option.K - ST, 0) * option.position)
+        payoff_final = sum(payoff)
+        return payoff_final
     def display_payoff_option(self):
+        start = min(self.K)*0.5
+        end = max(self.K) * 1.5
+        ST = list(range(round(start), round(end)))
         payoffs = []
-        for option, k in zip(self.options, self.K):
-            ST, payoff = display_payoff_eu(option.type, k, plot=False)
-            payoffs.append([payoff_ * self.position for payoff_ in payoff])
+        for i in ST:
+            payoffs.append(self.get_payoff_option(i))
+        plot_2d(ST, payoffs, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
 
-        final_payoff = [list(sum(x) for x in zip(*tuples)) for tuples in zip(payoffs)][0]
-        plot_2d(ST, final_payoff, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
     def option_price_close_formulae(self):
         price_basket_options = 0
         for i in range(len(self.options)):

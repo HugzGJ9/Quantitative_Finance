@@ -43,15 +43,19 @@ if __name__ == '__main__':
     vol_implied = 0.58
     strike = 43000
     stock_obj = yf.Ticker(stock_name)
-    S0 = stock_obj.history().tail(1)['Close'].values[0]
-    S0 = 46576
+    # S0 = stock_obj.history().tail(1)['Close'].values[0]
+    S0 = 100
+    strike = 100
     stock1 = asset_BS(S0, 0)
     callEU = Option_eu(1, 'Call EU', stock1, strike, 0, T, r, vol_implied)
     #callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
-    book1 = Book([callEU])
 
     #book1.simu_asset(1)
-    strangle = Option_prem_gen(-1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
+    strangle = Option_prem_gen(1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
+    strangle2 = Option_prem_gen(1, 'Strangle', stock1, [105, 115], 0, T, r, vol)
+
+    book1 = Book([strangle, strangle2])
+
     strangle.display_payoff_option()
     print('book greeks')
     print(book1.Delta_DF())

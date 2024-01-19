@@ -12,7 +12,7 @@ def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):
     if isShow:
         plt.show()
 
-def display_payoff_eu(Option_type, Strike, plot=True):
+def display_payoff_eu(Option_type, Strike:(list, int), plot=True):
 
     if Option_type == "Call EU":
         payoff_function = payoffs.payoff_call_eu
