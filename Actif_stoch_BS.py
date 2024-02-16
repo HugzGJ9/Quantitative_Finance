@@ -17,7 +17,9 @@ import numpy as np
 import yfinance as yf
 
 from Maths import norm_
-def simu_actif(init, N, t, T, mu, sigma):
+def simu_actif(init, t:int, T:int, mu, sigma, N=None):
+    if not N:
+        N = int((T-t)*24)
     St = [init]
     BM_ = BM(N, T-t)
     delta_t = (T-t)/N
@@ -49,4 +51,10 @@ def simu_stock_vs_hist(ticker_symbol):
     y = simu_actif(St, N, 0, N/365.6, mu, sigma)
     plt.plot(x, y)
     plt.legend(lengend)
+    plt.show()
+
+if __name__ == '__main__':
+    for i in range(150):
+        St = simu_actif(50, 0, 1, 0.2, 0.6)
+        plt.plot(St)
     plt.show()
