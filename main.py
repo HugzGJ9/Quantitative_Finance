@@ -19,10 +19,11 @@ if __name__ == '__main__':
     S0 = 100
     r = 0.1
     maturity_date = '2024-12-27'
-    now = datetime.now()
-    T = pd.to_datetime(maturity_date) - pd.to_datetime(now)
-    T = T.total_seconds()/(3600*365*24)   # maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
+    # now = datetime.now()
+    # T = pd.to_datetime(maturity_date) - pd.to_datetime(now)
+    # T = T.total_seconds()/(3600*365*24)   # maturity_dates = ['2023-12-15', '2023-12-22', '2023-12-29', '2024-05-01', '2024-12-01', '2025-12-01']
     stock_name = 'BTC-USD'
+    T = 100/365.6
     # r = Tresury_bond_13weeks
     # for maturity_date in maturity_dates:
     #implied_vol_dict = Volatilite_implicite(stock, maturity_date, 'Call EU', r, True, True)
@@ -48,10 +49,12 @@ if __name__ == '__main__':
     strike = 100
     stock1 = asset_BS(S0, 0)
     callEU = Option_eu(1, 'Call EU', stock1, strike, 0, T, r, vol_implied)
-    #callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
-
-    #book1.simu_asset(1)
     strangle = Option_prem_gen(1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
+
+    #callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
+    book1 = Book([strangle])
+    book1.delta_hedge()
+    book1.simu_asset(5)
     strangle2 = Option_prem_gen(1, 'Strangle', stock1, [105, 115], 0, T, r, vol)
 
     book1 = Book([strangle, strangle2])

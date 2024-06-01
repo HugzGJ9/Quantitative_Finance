@@ -1,3 +1,4 @@
+import Asset_class
 from Asset_class import asset_BS
 from Graphics import plot_2d
 from Options_class import  Option_eu, Option_prem_gen
@@ -6,26 +7,33 @@ class Book():
     def __init__(self, options_basket:list, asset=None)->None:
         self.basket = options_basket
         self.asset = asset
+        self.book_old = None
         return
     def append(self, option:(Option_eu, Option_prem_gen))->None:
         self.basket.append(option)
         return
-    def delta_hedge(self, asset:asset_BS):
-        if not isinstance(asset, asset_BS):
-            raise TypeError("asset must be of type asset_BS")
-        self.asset = asset
+
+    def delta_hedge(self):
+        unique_asset = list(set([option.asset for option in self.basket]))
+        #considering 1 unique asset
+        unique_asset = unique_asset[0]
+        delta = round(-self.Delta_DF())
+        unique_asset.quantity = delta
         return
     #def remove(self, ):
     def option_price_close_formulae(self):
         return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket])
-    def get_payoff_option(self, ST:int):
+    def get_payoff_option(self, ST:int):#to correct
         payoff = 0
         for option in self.basket:
             payoff+=option.get_payoff_option(ST)
+        if self.asset:
+            payoff += ST*self.asset.quantity
         return payoff
     def display_payoff_option(self):
         K_min = 99999999
         K_max = -99999999
+
         for option in self.basket:
             if type(option.K) == list:
                 K_min_temp = min(option.K)
@@ -55,6 +63,10 @@ class Book():
     def Theta_DF(self):
         return sum([option.Theta_DF() for option in self.basket])
     def simu_asset(self, time):
+        self.book_old = self
         list_asset = list(set([x.asset for x in self.basket]))
         for item in list_asset:
             item.simu_asset(time)
+        for option in self.basket:
+            option.update_t()
+        return

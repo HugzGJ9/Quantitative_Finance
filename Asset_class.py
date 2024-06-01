@@ -17,8 +17,7 @@ class asset_BS():
         for st in St:
             self.history.append(st)
         self.St = self.history[-1]
-    def pnl(self)->float:
-        return self.St - self.S0
+        self.t = self.t + T / 365.6
     def plot(self):
         plot_2d(list(range(len(self.history))), self.history, x_axis='t', y_axis='asset price', isShow=True)
     def Delta_DF(self):

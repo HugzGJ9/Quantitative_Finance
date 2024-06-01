@@ -15,7 +15,7 @@ class Option_eu:
         self.asset = asset
         self.type = type
         self.K = K
-        self.t = t
+        self.t = (len(self.asset.history)-1)/365.6
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -71,6 +71,10 @@ class Option_eu:
 
             self.result_label = ttk.Label(self.frame, text="", font=("Helvetica", 14))
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
+
+    def update_t(self):
+        self.t = (len(self.asset.history)-1)/365.6
+        return
     def get_payoff_option(self, ST:int)->int:
 
         if self.type == "Call EU":
@@ -166,15 +170,13 @@ class Option_eu:
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365.6
 
-
 class Option_prem_gen(Option_eu):
     def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
         self.position = position
         self.type = type
         self.asset = asset
-        self.asset.St = asset.St
         self.K = K
-        self.t = t
+        self.t = (len(self.asset.history)-1)/365.6
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -213,6 +215,11 @@ class Option_prem_gen(Option_eu):
             Call1_price = self.long_call.option_price_close_formulae()
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
+    def update_t(self):
+        self.t = (len(self.asset.history) - 1) / 365.6
+        for option in self.options:
+            option.update_t()
+        return
     def get_payoff_option(self, ST:int)->int:
         payoff = []
         for option in self.options:
