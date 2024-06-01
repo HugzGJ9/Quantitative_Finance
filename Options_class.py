@@ -104,9 +104,11 @@ class Option_eu:
         #     return option_price
     def option_price_mc(self):
         prix_option = 0
-        Nmc = 100000
+        Nmc = 5000
         for i in range(Nmc):
-            prix_actif = simu_actif(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
+            t_days = self.t*365
+            T_days = self.T*365
+            prix_actif = simu_actif(self.asset.St, t_days, T_days, self.r, self.sigma)
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
             elif self.type == "Put EU":
@@ -117,7 +119,7 @@ class Option_eu:
                 prix_option += payoff_put_asian(prix_actif, self.K)
         prix_option = np.exp(-self.r*(self.T-self.t))*prix_option / Nmc
 
-        self.result_label.config(text=f"Option Price: {prix_option:.4f}")
+        # self.result_label.config(text=f"Option Price: {prix_option:.4f}")
         return self.position*prix_option
 
     # def Delta(self):
