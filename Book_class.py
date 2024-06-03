@@ -2,7 +2,7 @@ import Asset_class
 from Asset_class import asset_BS
 from Graphics import plot_2d
 from Options_class import  Option_eu, Option_prem_gen
-
+import copy
 class Book():
     def __init__(self, options_basket:list, asset=None)->None:
         self.basket = options_basket
@@ -63,10 +63,15 @@ class Book():
     def Theta_DF(self):
         return sum([option.Theta_DF() for option in self.basket])
     def simu_asset(self, time):
-        self.book_old = self
         list_asset = list(set([x.asset for x in self.basket]))
         for item in list_asset:
             item.simu_asset(time)
         for option in self.basket:
             option.update_t()
         return
+
+    def pnl(self):
+        Book book_old = []
+        for option in self.basket:
+            if type(option) == Option_prem_gen:
+                option.option:

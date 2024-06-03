@@ -172,6 +172,7 @@ class Option_eu:
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365.6
 
+
 class Option_prem_gen(Option_eu):
     def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
         self.position = position
