@@ -12,7 +12,7 @@ class asset_BS():
         self.sigma = 0.2
         self.t = 0
     def simu_asset(self, T)->None:
-        St = simu_actif(self.St, T, self.t, T, self.mu, self.sigma)
+        St = simu_actif(self.St, self.t, T, self.mu, self.sigma)
         St.pop(0)
         for st in St:
             self.history.append(st)

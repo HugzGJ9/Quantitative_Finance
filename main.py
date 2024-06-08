@@ -52,9 +52,12 @@ if __name__ == '__main__':
     strangle = Option_prem_gen(1, 'Strangle', stock1, [95, 105], 0, T, r, vol)
 
     #callEU2 = Option_eu(-2, 'Call EU', stock1, 135, 0, T, r, vol)
-    book1 = Book([strangle])
-    book1.delta_hedge()
-    book1.simu_asset(5)
+    book1 = Book([callEU])
+    # book1.delta_hedge()
+    book1.simu_asset(time=5)
+    book1.pnl()
+
+    book1.Delta_DF()
     strangle2 = Option_prem_gen(1, 'Strangle', stock1, [105, 115], 0, T, r, vol)
 
     book1 = Book([strangle, strangle2])

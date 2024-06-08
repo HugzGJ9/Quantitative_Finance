@@ -63,15 +63,19 @@ class Book():
     def Theta_DF(self):
         return sum([option.Theta_DF() for option in self.basket])
     def simu_asset(self, time):
+        self.book_old = copy.deepcopy(self)
         list_asset = list(set([x.asset for x in self.basket]))
         for item in list_asset:
             item.simu_asset(time)
         for option in self.basket:
-            option.update_t()
+            option.update_t(time)
         return
 
     def pnl(self):
-        Book book_old = []
-        for option in self.basket:
-            if type(option) == Option_prem_gen:
-                option.option:
+        delta_pnl = self.Delta_DF() - self.book_old.Delta_DF()
+        gamma_pnl = self.Gamma_DF() - self.book_old.Gamma_DF()
+        theta_pnl = self.Theta_DF() - self.book_old.Theta_DF()
+        vega_pnl = self.Vega_DF() - self.book_old.Vega_DF()
+        asset_price_delta = self.basket[0].asset.St - self.book_old.basket[0].asset.St
+        explained_pnl = delta_pnl*asset_price_delta + 0.5*gamma_pnl*asset_price_delta**2 + theta_pnl*asset_price_delta + vega_pnl*asset_price_delta
+        return explained_pnl

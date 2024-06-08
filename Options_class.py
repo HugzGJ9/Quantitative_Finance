@@ -72,8 +72,8 @@ class Option_eu:
             self.result_label = ttk.Label(self.frame, text="", font=("Helvetica", 14))
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
 
-    def update_t(self):
-        self.t = (len(self.asset.history)-1)/365.6
+    def update_t(self, days):
+        self.t = days/365.6
         return
     def get_payoff_option(self, ST:int)->int:
 
@@ -218,8 +218,8 @@ class Option_prem_gen(Option_eu):
             Call1_price = self.long_call.option_price_close_formulae()
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
-    def update_t(self):
-        self.t = (len(self.asset.history) - 1) / 365.6
+    def update_t(self, days):
+        self.t = days / 365.6
         for option in self.options:
             option.update_t()
         return
