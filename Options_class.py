@@ -133,6 +133,33 @@ class Option_eu:
 
         delta = (option_delta_St - option_option)/delta_St
         return delta
+    def DeltaRisk(self):
+        Delta_Option = self.Delta_DF()
+        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        asset_st = self.asset.St
+        list_delta = list()
+        for st in range_st:
+            self.asset.St = st
+            list_delta.append(self.Delta_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_delta, label='Delta vs Range', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Delta_Option, 'x', label='Option Delta at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        # Adding titles and labels
+        plt.title('Delta of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Delta')
+
+        # Adding a legend
+        plt.legend()
+
+        # Adding grid for better readability
+        plt.grid(True)
+
+        # Displaying the plot
+        plt.show()
+        return
     # def Gamma(self):
     #     option_gamma = (gamma_option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r, self.sigma))
     #     return option_gamma
@@ -148,6 +175,34 @@ class Option_eu:
 
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
+
+    def GammaRisk(self):
+        Gamma_Option = self.Gamma_DF()
+        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        asset_st = self.asset.St
+        list_gamma = list()
+        for st in range_st:
+            self.asset.St = st
+            list_gamma.append(self.Gamma_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_gamma, label='Gamma vs Range', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Gamma_Option, 'x', label='Option Gama at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        # Adding titles and labels
+        plt.title('Gamma of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Gamma')
+
+        # Adding a legend
+        plt.legend()
+
+        # Adding grid for better readability
+        plt.grid(True)
+
+        # Displaying the plot
+        plt.show()
+        return
     def Vega_DF(self):
         delta_vol = 0.00001
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
@@ -157,21 +212,81 @@ class Option_eu:
 
         vega = (option_delta_vol - option_option) / delta_vol
         return vega/100
+
+    def VegaRisk(self):
+        Vega_Option = self.Vega_DF()
+        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        asset_st = self.asset.St
+        list_vega = list()
+        for st in range_st:
+            self.asset.St = st
+            list_vega.append(self.Vega_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_vega, label='Vega vs Range', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Vega_Option, 'x', label='Option Vega at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        # Adding titles and labels
+        plt.title('Vega of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Vega')
+
+        # Adding a legend
+        plt.legend()
+
+        # Adding grid for better readability
+        plt.grid(True)
+
+        # Displaying the plot
+        plt.show()
+        return
     def Theta_DF(self):
         delta_t = 0.00001
-        option_delta_t = Option_eu(self.position, self.type, self.asset, self.K, self.t+delta_t, self.T, self.r,
-                                    self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
-                                  self.sigma).option_price_close_formulae()
+        self.t = self.t+delta_t
+        option_delta_t = self.option_price_close_formulae()
+        self.t = self.t-delta_t
+
+        option_option = self.option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
-        return theta/365.6
+        return theta
+    def ThetaRisk(self):
+        Theta_Option = self.Theta_DF()
+        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        asset_st = self.asset.St
+        list_theta = list()
+        for st in range_st:
+            self.asset.St = st
+            list_theta.append(self.Theta_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_theta, label='Theta vs Range', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Theta_Option, 'x', label='Option Theta at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
 
+        # Adding titles and labels
+        plt.title('Theta of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Theta')
+
+        # Adding a legend
+        plt.legend()
+
+        # Adding grid for better readability
+        plt.grid(True)
+
+        # Displaying the plot
+        plt.show()
+        return
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365.6
-
+    def RiskAnalysis(self):
+        self.DeltaRisk()
+        self.GammaRisk()
+        self.VegaRisk()
+        self.ThetaRisk()
+        return
 
 class Option_prem_gen(Option_eu):
     def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):

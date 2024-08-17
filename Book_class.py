@@ -3,10 +3,10 @@ from Asset_class import asset_BS
 from Graphics import plot_2d
 from Options_class import  Option_eu, Option_prem_gen
 import copy
-class Book():
-    def __init__(self, options_basket:list, asset=None)->None:
+class Book(Option_eu):
+    def __init__(self, options_basket:list)->None:
         self.basket = options_basket
-        self.asset = asset
+        self.asset = self.basket[0].asset
         self.book_old = None
         return
     def append(self, option:(Option_eu, Option_prem_gen))->None:
