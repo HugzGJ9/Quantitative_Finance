@@ -18,6 +18,8 @@ import yfinance as yf
 
 from Maths import norm_
 def simu_actif(init, t:int, T:int, mu, sigma, N=None):
+
+    sigma_daily = sigma /np.sqrt(24*365)
     if not N:
         N = int((T-t)*24)
     St = [init]
@@ -25,7 +27,7 @@ def simu_actif(init, t:int, T:int, mu, sigma, N=None):
     delta_t = (T-t)/N
     for i in range(N):
         BM_delta = BM_[i+1] - BM_[i]
-        St.append(St[i]*np.exp((mu-0.5*sigma**2)*delta_t + sigma*BM_delta))
+        St.append(St[i]*np.exp((mu-0.5*sigma_daily**2)*delta_t + sigma_daily*BM_delta))
     return St
 
 def payoff_call_eu(ST, K):

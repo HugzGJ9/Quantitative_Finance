@@ -16,17 +16,18 @@ if __name__ == '__main__':
     K = 100
     vol = 0.2
     r = 0.1
-    T = 2/365.6
+    T = 10/365.6
     S0 = 100
     strike = 100
 
     stock1 = asset_BS(S0, 0)
     callEU = Option_eu(100, 'Call EU', stock1, strike, 0, T, r, vol)
     strangle = Option_prem_gen(100, 'Strangle', stock1, [95, 105], 0, T, r, vol)
-    book1 = Book([callEU, strangle])
-    book2 = Book([strangle])
+    book1 = Book([callEU])
+    book1.delta_hedge()
+    book1.simu_asset(time=1)
+    book1.Delta_DF()
 
-    # book1.delta_hedge()
     book1.simu_asset(time=5)
     book1.pnl()
 

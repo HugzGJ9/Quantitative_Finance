@@ -22,11 +22,11 @@ class Book(Option_eu):
         return
     #def remove(self, ):
     def option_price_close_formulae(self):
-        return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket])
+        return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket]) + self.asset.quantity*self.asset.St
     def get_payoff_option(self, ST:int):#to correct
         payoff = 0
         for option in self.basket:
-            payoff+=option.get_payoff_option(ST)
+            payoff+=option.get_payoff_boooption(ST)
         if self.asset:
             payoff += ST*self.asset.quantity
         return payoff

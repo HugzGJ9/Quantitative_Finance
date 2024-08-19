@@ -15,7 +15,7 @@ class Option_eu:
         self.asset = asset
         self.type = type
         self.K = K
-        self.t = (len(self.asset.history)-1)/365.6
+        self.t = (len(self.asset.history)-1)/(365.6*24)
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -281,6 +281,34 @@ class Option_eu:
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365.6
+
+    def PnlRisk(self):
+        Price_Option = self.option_price_close_formulae()
+        range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
+        asset_st = self.asset.St
+        list_price = list()
+        for st in range_st:
+            self.asset.St = st
+            list_price.append(self.option_price_close_formulae())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_price, label='Price vs Range', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Price_Option, 'x', label='Option Price at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        # Adding titles and labels
+        plt.title('Price of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Price')
+
+        # Adding a legend
+        plt.legend()
+
+        # Adding grid for better readability
+        plt.grid(True)
+
+        # Displaying the plot
+        plt.show()
+        return
     def RiskAnalysis(self):
         self.DeltaRisk()
         self.GammaRisk()
@@ -334,9 +362,9 @@ class Option_prem_gen(Option_eu):
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
     def update_t(self, days):
-        self.t = days / 365.6
+        #self.t = days / 365.6
         for option in self.options:
-            option.update_t()
+            option.update_t(days)
         return
     def get_payoff_option(self, ST:int)->int:
         payoff = []
