@@ -26,7 +26,7 @@ class Book(Option_eu):
     def get_payoff_option(self, ST:int):#to correct
         payoff = 0
         for option in self.basket:
-            payoff+=option.get_payoff_boooption(ST)
+            payoff+=option.get_payoff_option(ST)
         if self.asset:
             payoff += ST*self.asset.quantity
         return payoff
