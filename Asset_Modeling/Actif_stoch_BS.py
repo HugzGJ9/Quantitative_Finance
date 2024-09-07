@@ -12,14 +12,13 @@ S(t) = S(0)*exp((mu-0.5sigma**2)$t + sigmaWt)
 '''
 from matplotlib import pyplot as plt
 
-from BM_def import BM
+from Asset_Modeling.BM_def import BM
 import numpy as np
 import yfinance as yf
-
-from Maths import norm_
 def simu_actif(init, t:int, T:int, mu, sigma, N=None):
-
-    sigma_daily = sigma /np.sqrt(24*365)
+    sigma_daily = sigma / np.sqrt(24*365.6)
+    mu = mu/365.6
+    T = T*365.6
     if not N:
         N = int((T-t)*24)
     St = [init]
@@ -57,6 +56,6 @@ def simu_stock_vs_hist(ticker_symbol):
 
 if __name__ == '__main__':
     for i in range(150):
-        St = simu_actif(50, 0, 1, 0.2, 0.6)
+        St = simu_actif(50, 0, 1/365.6, 0.2, 0.6)
         plt.plot(St)
     plt.show()

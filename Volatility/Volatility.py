@@ -1,12 +1,12 @@
 import numpy as np
 
-from Asset_class import asset_BS
-from Options_class import Option_eu, Option_prem_gen
+from  Asset_Modeling.Asset_class import asset_BS
+from Options.Options_class import Option_eu
 import datetime
 import pandas as pd
 import yfinance as yf
 from toolbox import keep_after_dash, keep_before_dash
-from Graphics import plot_2d
+from Graphics.Graphics import plot_2d
 
 def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, isCrypto=False):
     t = 0
@@ -24,7 +24,7 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, i
             options = options.puts
         options_df = options[['lastTradeDate', 'strike', 'bid', 'impliedVolatility']]
     else:
-        options_df = pd.read_excel('Data_option_crypto/BTCUSD.xlsx')
+        options_df = pd.read_excel('Crypto/BTCUSD.xlsx')
         options_df['matu'] = options_df['strike'].apply(keep_before_dash)
         options_df = options_df[options_df['matu'] == pd.Timestamp(maturity_date)]
         options_df['strike'] = options_df['strike'].apply(keep_after_dash)

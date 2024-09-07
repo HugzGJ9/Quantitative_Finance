@@ -1,9 +1,14 @@
 import statistics
 import numpy as np
-from Maths import normal_repartition, normal_distribution
+from Asset_Modeling.Maths import normal_repartition, normal_distribution
 
 def payoff_call_eu(ST, K):
     return(max(ST-K, 0))
+def payoff_call_eu_barrier(ST, K, activated:bool):
+    if activated:
+        return 0
+    else:
+        return(max(ST-K, 0))
 def payoff_put_eu(ST, K):
     return(max(K-ST, 0))
 def payoff_call_asian(St, K):
@@ -16,7 +21,6 @@ def payoff_call_spread(ST, K):
     long_call = payoff_call_eu(ST, K[0])
     short_call = payoff_call_eu(ST, K[1])
     return(long_call-short_call)
-
 def payoff_call_spread(ST, K):
     long_call = payoff_call_eu(ST, K[0])
     short_call = payoff_call_eu(ST, K[1])

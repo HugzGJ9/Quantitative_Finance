@@ -1,7 +1,5 @@
-import Asset_class
-from Asset_class import asset_BS
-from Graphics import plot_2d
-from Options_class import  Option_eu, Option_prem_gen
+from Graphics.Graphics import plot_2d
+from Options.Options_class import  Option_eu, Option_prem_gen
 import copy
 class Book(Option_eu):
     def __init__(self, options_basket:list)->None:
@@ -70,7 +68,8 @@ class Book(Option_eu):
         for option in self.basket:
             option.update_t(time)
         return
-
+    # def clean_basket(self):
+    #     for
     def pnl(self):
         delta_pnl = self.Delta_DF() - self.book_old.Delta_DF()
         gamma_pnl = self.Gamma_DF() - self.book_old.Gamma_DF()

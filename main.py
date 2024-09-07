@@ -1,11 +1,7 @@
-from datetime import datetime
-
 import matplotlib.pyplot as plt
-import pandas as pd
-import yfinance as yf
-from Asset_class import asset_BS
-from Options_class import Option_eu, Option_prem_gen, plot_greek_curves_2d
-from Book_class import Book
+from  Asset_Modeling.Asset_class import asset_BS
+from Options.Options_class import Option_eu, Option_prem_gen, plot_greek_curves_2d
+from Options.Book_class import Book
 # from interest_rates import Tresury_bond_13weeks
 # from interest_rates import Tresury_bond_5years
 # from interest_rates import Tresury_bond_30years
@@ -14,23 +10,26 @@ if __name__ == '__main__':
 
     t = 0
     K = 100
-    vol = 0.2
+    vol = 0.6
     r = 0.1
-    T = 10/365.6
+    T = 5/365.6
     T2 = 100/365.6
 
     S0 = 100
     strike = 100
 
-    stock1 = asset_BS(S0, 0)
-    callEU = Option_eu(1, 'Call EU', stock1, strike, 0, T, r, vol)
-    callEU2 = Option_eu(-1, 'Call EU', stock1, strike, 0, T2, r, vol)
+    stock1 = asset_BS(2.27, 0)
+    callEU = Option_eu(100, 'Call EU', stock1, 2.3, T, r, vol)
+    callEU2 = Option_eu(-1, 'Put EU', stock1, strike, T2, r, vol)
+    callEU_Barrier = Option_eu(1, 'Call In & Out', stock1, strike, T, r, vol, 200)
+    # callEU_Barrier.option_price_mc()
+    book1 = Book([callEU])
 
-    call_spread = Option_prem_gen(-1, 'Call Spread', stock1, [95, 105], 0, T, r, vol)
-    straddle1 = Option_prem_gen(1, 'Strangle', stock1, [95, 95], 0, T, r, vol)
-    straddle2 = Option_prem_gen(-1, 'Strangle', stock1, [95, 95], 0, T2, r, vol)
+    call_spread = Option_prem_gen(-1, 'Call Spread', stock1, [95, 105], T, r, vol)
+    straddle1 = Option_prem_gen(1, 'Strangle', stock1, [95, 95], T, r, vol)
+    straddle2 = Option_prem_gen(-1, 'Strangle', stock1, [95, 95],  T2, r, vol)
 
-    book1 = Book([callEU, call_spread])
+    book1 = Book([callEU])
     book2 = Book([straddle1, straddle2])
     book3 = Book([callEU, callEU2])
 
@@ -43,12 +42,7 @@ if __name__ == '__main__':
     book1.simu_asset(time=5)
     book1.pnl()
 
-    book1.Delta_DF()
-    strangle2 = Option_prem_gen(1, 'Strangle', stock1, [105, 115], 0, T, r, vol)
 
-    book1 = Book([strangle, strangle2])
-
-    strangle.display_payoff_option()
     print('book greeks')
     print(book1.Delta_DF())
     print(book1.Gamma_DF())

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import payoffs
+from Options import payoffs
 
 
 def plot_2d(x_, y_, titre, x_axis, y_axis, isShow=True, legend= None):

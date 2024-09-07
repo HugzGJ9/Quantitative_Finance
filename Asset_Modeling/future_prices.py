@@ -1,10 +1,8 @@
 from statistics import mean
 
 import yfinance as yf
-from datetime import datetime, timedelta
 import numpy as np
-from matplotlib import pyplot as plt
-from Actif_stoch_BS import simu_actif, simu_stock_vs_hist
+from Asset_Modeling.Actif_stoch_BS import simu_actif
 from interest_rates import Tresury_bond_5years
 
 

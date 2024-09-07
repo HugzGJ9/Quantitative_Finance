@@ -1,16 +1,21 @@
+import datetime
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
-from Asset_class import asset_BS
-from Actif_stoch_BS import simu_actif
+from Asset_Modeling.Asset_class import asset_BS
+from  Asset_Modeling.Actif_stoch_BS import simu_actif
 import tkinter as tk
 from tkinter import ttk
 
-from Graphics import display_payoff_eu, plot_2d
-from payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, close_formulae_put_eu, delta_option_eu, gamma_option_eu
+from Graphics.Graphics import plot_2d
+from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
+    close_formulae_put_eu, payoff_call_eu_barrier
+
+
 class Option_eu:
     #root parameter to
-    def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
         self.position = position
         self.asset = asset
         self.type = type
@@ -19,7 +24,7 @@ class Option_eu:
         self.T = T
         self.r = r
         self.sigma = sigma
-
+        self.barrier = barrier
         if root!= None:
             self.root = root
             self.root.title("European Option Pricing")
@@ -106,8 +111,8 @@ class Option_eu:
         prix_option = 0
         Nmc = 5000
         for i in range(Nmc):
-            t_days = self.t*365
-            T_days = self.T*365
+            t_days = self.t*365.6
+            T_days = self.T*365.6
             prix_actif = simu_actif(self.asset.St, t_days, T_days, self.r, self.sigma)
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
@@ -117,6 +122,9 @@ class Option_eu:
                 prix_option += payoff_call_asian(prix_actif, self.K)
             elif self.type == "Put Asian":
                 prix_option += payoff_put_asian(prix_actif, self.K)
+            elif self.type == "Call In & Out":
+                activation_barrier = True in [self.barrier<St for St in prix_actif]
+                prix_option += payoff_call_eu_barrier(prix_actif[-1], self.K, activation_barrier)
         prix_option = np.exp(-self.r*(self.T-self.t))*prix_option / Nmc
 
         # self.result_label.config(text=f"Option Price: {prix_option:.4f}")
@@ -128,14 +136,17 @@ class Option_eu:
     def Delta_DF(self):
         delta_St = 0.00001
         asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        option_delta_St = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_delta_St = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
 
         delta = (option_delta_St - option_option)/delta_St
         return delta
     def DeltaRisk(self):
         Delta_Option = self.Delta_DF()
-        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        if self.asset.St>10:
+            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        else:
+            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
         asset_st = self.asset.St
         list_delta = list()
         for st in range_st:
@@ -161,24 +172,28 @@ class Option_eu:
         plt.show()
         return
     # def Gamma(self):
-    #     option_gamma = (gamma_option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r, self.sigma))
+    #     option_gamma = (gamma_option_eu(self.position, self.type, self.asset, self.K, self.T, self.r, self.sigma))
     #     return option_gamma
     def Gamma_DF(self):
         delta_St = 0.00001
         asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
         asset_delta_neg = asset_BS(self.asset.St - delta_St, self.asset.quantity)
-        option_gamma_plus = Option_eu(self.position, self.type, asset_delta, self.K, self.t, self.T, self.r,
+        option_gamma_plus = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r,
                                       self.sigma).option_price_close_formulae()
-        option_gamma_minus = Option_eu(self.position, self.type, asset_delta_neg, self.K, self.t, self.T, self.r,
+        option_gamma_minus = Option_eu(self.position, self.type, asset_delta_neg, self.K, self.T, self.r,
                                        self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.t, self.T, self.r, self.sigma).option_price_close_formulae()
+        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
 
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
 
     def GammaRisk(self):
         Gamma_Option = self.Gamma_DF()
-        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+
+        if self.asset.St>10:
+            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        else:
+            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
         asset_st = self.asset.St
         list_gamma = list()
         for st in range_st:
@@ -205,9 +220,9 @@ class Option_eu:
         return
     def Vega_DF(self):
         delta_vol = 0.00001
-        option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
+        option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                     self.sigma+delta_vol).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r,
+        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                   self.sigma).option_price_close_formulae()
 
         vega = (option_delta_vol - option_option) / delta_vol
@@ -215,7 +230,10 @@ class Option_eu:
 
     def VegaRisk(self):
         Vega_Option = self.Vega_DF()
-        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        if self.asset.St>10:
+            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        else:
+            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
         asset_st = self.asset.St
         list_vega = list()
         for st in range_st:
@@ -252,7 +270,10 @@ class Option_eu:
         return theta
     def ThetaRisk(self):
         Theta_Option = self.Theta_DF()
-        range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        if self.asset.St>10:
+            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        else:
+            range_st = [x/100 for x in range(round(self.asset.St*0.1*100), round(self.asset.St*3*100), 2)]
         asset_st = self.asset.St
         list_theta = list()
         for st in range_st:
@@ -315,9 +336,22 @@ class Option_eu:
         self.VegaRisk()
         self.ThetaRisk()
         return
+    def run_Booking(self):
+        booking_file_path = 'Booking_history.xlsx'
+        booking_file_sheet_name = 'histo_order'
+
+        df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+        position = 'long' if self.position>0 else 'short'
+        date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        type = self.type
+        booking = {'position': position, 'type':type, 'quantité':np.sqrt(self.position**2), 'maturité':self.T*365.6, 'asset':self.asset.name, 'price asset':self.asset.St, 'option price': 100, 'option price th': self.option_price_close_formulae(),'strike': self.K, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        df.loc[len(df)] = booking
+        with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+        return
 
 class Option_prem_gen(Option_eu):
-    def __init__(self, position, type, asset:(asset_BS), K, t, T, r, sigma, root=None):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, root=None):
         self.position = position
         self.type = type
         self.asset = asset

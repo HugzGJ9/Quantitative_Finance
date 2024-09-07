@@ -11,7 +11,7 @@ WtN = WtN−1 + gN√Delta_t
 '''
 
 import numpy as np
-from Maths import norm_
+from Asset_Modeling.Maths import norm_
 
 def BM(N, T):
     delta_t = T/N
