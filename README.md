@@ -1,3 +1,11 @@
+Quantitative_Finance is a project that began in Fall 2023, with its purpose and motivations evolving over time. Initially, the goal was to create a comprehensive project that integrated various academic approaches. However, only a few useful features from these approaches have been incorporated into the project.
+
+The second motivation was to develop a personal Python library for quantitative finance, aimed at retrieving and visualizing metrics related to advanced options strategies.
+
+The third objective was to study the evolution of an options book over time by simulating the underlying assets and analyzing how risks change.
+
+The current motivation is to utilize this project as a tool for managing an options portfolio.
+
 1/ASSET CLASS
 
 This snippet is simulating the price movement of a stock or asset over a time interval (1 day) using a BS stochastic model and plotting the result :
