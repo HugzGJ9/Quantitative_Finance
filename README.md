@@ -19,22 +19,36 @@ This snippet is simulating the price movement of a stock or asset over a time in
 The instance creation first requires the creation of an Asset object, which is then used as a parameter for the Option_eu object. Below is the list of methods defined for the class:
 
 DeltaRisk
-Delta_DF
-GammaRisk
-Gamma_DF
-PnlRisk
-RiskAnalysis
-ThetaRisk
-Theta_DF
-VegaRisk
-Vega_DF
-display_payoff_option
-get_payoff_option
-option_price_close_formulae
-option_price_mc
-run_Booking
-simu_asset
 
+Delta_DF
+
+GammaRisk
+
+Gamma_DF
+
+PnlRisk
+
+RiskAnalysis
+
+ThetaRisk
+
+Theta_DF
+
+VegaRisk
+
+Vega_DF
+
+display_payoff_option
+
+get_payoff_option
+
+option_price_close_formulae
+
+option_price_mc
+
+run_Booking
+
+simu_asset
 
 ![image](https://github.com/user-attachments/assets/7f6b2033-1fac-4330-9eab-6d2d4ba51a42)
 
