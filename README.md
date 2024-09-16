@@ -14,7 +14,7 @@ In this project, the underlying asset of an option has been modeled as an object
 
 The instance creation first requires the creation of an Asset object, which is then used as a parameter for the Option_eu object. Below is the list of methods defined for the class:
 
-DeltaRisk / Delta_DF / GammaRisk / Gamma_DF / PnlRisk / RiskAnalysis / ThetaRisk / Theta_DF / VegaRisk / Vega_DF / display_payoff_option / get_payoff_option / option_price_close_formulae / option_price_mc / run_Booking / simu_asset
+DeltaRisk / Delta_DF / Delta_surface / GammaRisk / Gamma_DF / Gamma_surface / VegaRisk / Vega_DF / Vega_surface / ThetaRisk / Theta_DF / Theta_surface / PnlRisk / RiskAnalysis /  display_payoff_option / get_payoff_option / option_price_close_formulae / option_price_mc / run_Booking / simu_asset
 
 
 ![graphviz](https://github.com/user-attachments/assets/c7cde25a-0317-4ea7-84bd-7d4e8f35b87a)
