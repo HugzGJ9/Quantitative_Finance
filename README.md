@@ -16,8 +16,8 @@ This snippet is simulating the price movement of a stock or asset over a time in
 
 2/OPTION CLASS
 
-The instance creation necissite first to create an object Asset in order to use it as a parameter for the object Option_eu.
-Here is the list of the methods defined for the class :
+The instance creation first requires the creation of an Asset object, which is then used as a parameter for the Option_eu object. Below is the list of methods defined for the class:
+
 DeltaRisk
 Delta_DF
 GammaRisk
@@ -34,7 +34,6 @@ option_price_close_formulae
 option_price_mc
 run_Booking
 simu_asset
-
 
 
 ![image](https://github.com/user-attachments/assets/7f6b2033-1fac-4330-9eab-6d2d4ba51a42)
