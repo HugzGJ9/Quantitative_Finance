@@ -32,4 +32,8 @@ By creating an instance of a Booking Request that can take either an Option or A
 
 From this, the system can compute the Mark-to-Market (MtM) value of the position and assess the risk exposure of the book.
 
+![image](https://github.com/user-attachments/assets/f10715be-78a7-450b-a6b1-8fdcbdddbb9b)
+
+Figure: Inheritance relationship between classes.
+
 ![graphviz](https://github.com/user-attachments/assets/c7cde25a-0317-4ea7-84bd-7d4e8f35b87a)
