@@ -4,7 +4,7 @@ This snippet is simulating the price movement of a stock or asset over a time in
 
 ![image](https://github.com/user-attachments/assets/2b0b20e2-b570-4d22-83d9-4cd6b1e02f61)
 
-![image](https://github.com/user-attachments/assets/06284de6-2d1e-4c57-b533-3e292210d0d4)
+![image](https://github.com/user-attachments/assets/76b76de9-ac24-467f-8596-00e9c771fd52)
 
 2/OPTION CLASS
 
@@ -31,7 +31,7 @@ simu_asset
 
 ![image](https://github.com/user-attachments/assets/7f6b2033-1fac-4330-9eab-6d2d4ba51a42)
 
-![image](https://github.com/user-attachments/assets/2b87570c-1685-466d-aa55-2d6083963a32)
+![image](https://github.com/user-attachments/assets/d92ea114-02d1-41bc-b50a-c53e47f917ee)
 
 ![image](https://github.com/user-attachments/assets/781efd1d-483e-41d2-ab05-6152e34dbc84)
 
