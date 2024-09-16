@@ -24,4 +24,12 @@ The Option 1st Generation class is defined as a combination of European vanilla 
 
 Similar to the Option 1st Generation class, the Book class is defined as a combination of OptionEU or Option 1st Generation objects. For now, the Book class considers a single unique underlying asset.
 
+5/BOOKING REQUEST
+
+By creating an instance of a Booking Request that can take either an Option or Asset object as a parameter, you can update a booking Excel file used to manage option book positions.
+
+![image](https://github.com/user-attachments/assets/409b6bb2-b3db-43cb-9c70-53fbab07939d)
+
+From this, the system can compute the Mark-to-Market (MtM) value of the position and assess the risk exposure of the book.
+
 ![graphviz](https://github.com/user-attachments/assets/c7cde25a-0317-4ea7-84bd-7d4e8f35b87a)
