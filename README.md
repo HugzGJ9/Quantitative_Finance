@@ -31,8 +31,6 @@ simu_asset
 
 ![image](https://github.com/user-attachments/assets/7f6b2033-1fac-4330-9eab-6d2d4ba51a42)
 
-![image](https://github.com/user-attachments/assets/18085669-5718-4f43-90f8-ec249ba63de6)
-
 ![image](https://github.com/user-attachments/assets/2b87570c-1685-466d-aa55-2d6083963a32)
 
 ![image](https://github.com/user-attachments/assets/781efd1d-483e-41d2-ab05-6152e34dbc84)
