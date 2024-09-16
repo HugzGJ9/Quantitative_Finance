@@ -27,6 +27,9 @@ option_price_mc
 run_Booking
 simu_asset
 
+
+![image](https://github.com/user-attachments/assets/04fb714f-a99e-42fd-a135-e33332b086a3)
+
 ![image](https://github.com/user-attachments/assets/7f6b2033-1fac-4330-9eab-6d2d4ba51a42)
 
 ![image](https://github.com/user-attachments/assets/18085669-5718-4f43-90f8-ec249ba63de6)
@@ -38,10 +41,6 @@ simu_asset
 ![image](https://github.com/user-attachments/assets/5e8c945e-8641-405c-b02a-c5484dd9c8eb)
 
 ![image](https://github.com/user-attachments/assets/faad6a5c-444a-4993-975d-35a3c12c4fdf)
-
-
-
-![image](https://github.com/user-attachments/assets/04fb714f-a99e-42fd-a135-e33332b086a3)
 
 
 
