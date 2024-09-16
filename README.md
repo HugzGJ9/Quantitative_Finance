@@ -16,5 +16,12 @@ The instance creation first requires the creation of an Asset object, which is t
 
 DeltaRisk / Delta_DF / Delta_surface / GammaRisk / Gamma_DF / Gamma_surface / VegaRisk / Vega_DF / Vega_surface / ThetaRisk / Theta_DF / Theta_surface / PnlRisk / RiskAnalysis /  display_payoff_option / get_payoff_option / option_price_close_formulae / option_price_mc / run_Booking / simu_asset
 
+3/ OPTION 1st GEN
+
+The Option 1st Generation class is defined as a combination of European vanilla options, such as spreads, straddles, and strangles. An inheritance relationship exists between this class and the OptionEU class.
+
+4/BOOK CLASS
+
+Similar to the Option 1st Generation class, the Book class is defined as a combination of OptionEU or Option 1st Generation objects. For now, the Book class considers a single unique underlying asset.
 
 ![graphviz](https://github.com/user-attachments/assets/c7cde25a-0317-4ea7-84bd-7d4e8f35b87a)
