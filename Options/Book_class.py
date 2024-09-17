@@ -5,6 +5,7 @@ class Book(Option_eu):
     def __init__(self, options_basket:list)->None:
         self.basket = options_basket
         self.asset = self.basket[0].asset
+        # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
         self.book_old = None
         return
     def append(self, option:(Option_eu, Option_prem_gen))->None:
@@ -18,7 +19,15 @@ class Book(Option_eu):
         delta = round(-self.Delta_DF())
         unique_asset.quantity = delta
         return
-    #def remove(self, ):
+
+    def get_move_deltahedge(self):
+        st = self.asset.St
+        while self.Delta_DF() < 1:
+            self.asset.St += 0.01
+        move = self.asset.St
+        self.asset.St = st
+        return move
+
     def option_price_close_formulae(self):
         return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket]) + self.asset.quantity*self.asset.St
     def get_payoff_option(self, ST:int):#to correct
@@ -50,7 +59,7 @@ class Book(Option_eu):
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, "Payoff of the book", "Asset price", "Payoff", isShow=True)
+        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title="Payoff of the book")
     def Delta_DF(self):
         hedge = self.asset.quantity if self.asset != None else 0
         return sum([option.Delta_DF() for option in self.basket]) + hedge
@@ -68,8 +77,17 @@ class Book(Option_eu):
         for option in self.basket:
             option.update_t(time)
         return
-    # def clean_basket(self):
-    #     for
+    def clean_basket(self):
+
+        for i in self.basket:
+            for h in self.basket:
+                if h == i:
+                    continue
+                elif i.type == h.type and i.asset == h.asset and i.T == h.T and i.K == h.K:
+                    i.position += h.position
+                    h.position = 0
+                    self.basket.remove(h)
+        return
     def pnl(self):
         delta_pnl = self.Delta_DF() - self.book_old.Delta_DF()
         gamma_pnl = self.Gamma_DF() - self.book_old.Gamma_DF()

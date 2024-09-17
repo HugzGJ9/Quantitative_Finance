@@ -18,8 +18,12 @@ if __name__ == '__main__':
     S0 = 100
     strike = 100
 
-    stock1 = asset_BS(2.27, 0)
-    callEU = Option_eu(100, 'Call EU', stock1, 2.3, T, r, vol)
+    stock1 = asset_BS(2.240, 0)
+    callEU = Option_eu(1, 'Call EU', stock1, 2.24, 14/365.6, r, 0.6)
+    callEU.display_payoff_option()
+    callEU.RiskAnalysis()
+    callEU.PnlRisk()
+
     callEU2 = Option_eu(-1, 'Put EU', stock1, strike, T2, r, vol)
     callEU_Barrier = Option_eu(1, 'Call In & Out', stock1, strike, T, r, vol, 200)
     # callEU_Barrier.option_price_mc()
@@ -78,11 +82,3 @@ if __name__ == '__main__':
     #to activate the user interface
     # root = ThemedTk(theme="breeze")
     # root.mainloop()
-
-      # Choose your preferred theme
-
-    #to activate the user interface
-    # root = ThemedTk(theme="breeze")
-    # root.mainloop()
-
-      # Choose your preferred theme

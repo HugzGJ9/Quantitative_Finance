@@ -12,7 +12,6 @@ from Graphics.Graphics import plot_2d
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, payoff_call_eu_barrier
 
-
 class Option_eu:
     #root parameter to
     def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
@@ -88,13 +87,16 @@ class Option_eu:
             payoff = payoff_put_eu(ST, self.K) * self.position
         return payoff
     def display_payoff_option(self):
-        start = self.K*0.5
-        end = self.K*1.5
-        ST = list(range(round(start), round(end)))
+
+        if self.K>10:
+            ST = range(round(self.K*0.5), round(self.K*1.5), 2)
+        else:
+            ST = [x/100 for x in range(round(self.K*0.5*100), round(self.K*3*100), 2)]
+
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
+        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
     def option_price_close_formulae(self):
         if self.type == "Call EU":
             option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
@@ -170,10 +172,42 @@ class Option_eu:
 
         # Displaying the plot
         plt.show()
-        return
-    # def Gamma(self):
-    #     option_gamma = (gamma_option_eu(self.position, self.type, self.asset, self.K, self.T, self.r, self.sigma))
-    #     return option_gamma
+        tableau_delta = pd.DataFrame(zip(range_st, list_delta), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_delta.index = tableau_delta['Underlying Asset Price (St) move']
+        tableau_delta = tableau_delta['gains']
+        return tableau_delta
+    def Delta_surface(self):
+        if self.asset.St > 10:
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
+
+        asset_st = self.asset.St
+        option_matu = self.T
+        list_delta = []
+
+        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+
+        for t in range_t:
+            self.T = option_matu - t
+            for st in range_st:
+                self.asset.St = st
+                list_delta.append(self.Delta_DF())
+
+        self.asset.St = asset_st
+        self.T = option_matu
+
+        range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
+        list_delta = np.array(list_delta).reshape(len(range_t), len(range_st))
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_delta, cmap='magma')
+        ax.set_title('Delta of the Option vs. Underlying Asset Price and Time')
+        ax.set_xlabel('Underlying Asset Price (St)')
+        ax.set_ylabel('Time to Maturity (T)')
+        ax.set_zlabel('Option Delta')
+        plt.show()
+
     def Gamma_DF(self):
         delta_St = 0.00001
         asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
@@ -218,6 +252,38 @@ class Option_eu:
         # Displaying the plot
         plt.show()
         return
+
+    def Gamma_surface(self):
+        if self.asset.St > 10:
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
+
+        asset_st = self.asset.St
+        option_matu = self.T
+        list_gamma = []
+
+        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+
+        for t in range_t:
+            self.T = option_matu - t
+            for st in range_st:
+                self.asset.St = st
+                list_gamma.append(self.Gamma_DF())
+
+        self.asset.St = asset_st
+        self.T = option_matu
+
+        range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
+        list_gamma = np.array(list_gamma).reshape(len(range_t), len(range_st))
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_gamma, cmap='magma')
+        ax.set_title('Gamma of the Option vs. Underlying Asset Price and Time')
+        ax.set_xlabel('Underlying Asset Price (St)')
+        ax.set_ylabel('Time to Maturity (T)')
+        ax.set_zlabel('Option Gamma')
+        plt.show()
     def Vega_DF(self):
         delta_vol = 0.00001
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
@@ -258,6 +324,34 @@ class Option_eu:
         # Displaying the plot
         plt.show()
         return
+    def Vega_surface(self):
+
+
+        vol_option = self.sigma
+        option_matu = self.T
+        list_vega = []
+        range_sigma = [sigma / 100 for sigma in range(round(self.sigma * 100*0.5), round(self.sigma * 100*1.5), 2)]
+        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+
+        for t in range_t:
+            self.T = option_matu - t
+            for sigma_ in range_sigma:
+                self.sigma = sigma_
+                list_vega.append(self.Vega_DF())
+
+        self.sigma = vol_option
+        self.T = option_matu
+
+        range_sigma_mesh, range_t_mesh = np.meshgrid(range_sigma, range_t)
+        list_vega = np.array(list_vega).reshape(len(range_t), len(range_sigma))
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(range_sigma_mesh, range_t_mesh*365.6, list_vega, cmap='magma')
+        ax.set_title('Vega of the Option vs. Underlying Asset Price and Time')
+        ax.set_xlabel('Volatility (sigma)')
+        ax.set_ylabel('Time to Maturity (T)')
+        ax.set_zlabel('Option Vega')
+        plt.show()
     def Theta_DF(self):
         delta_t = 0.00001
         self.t = self.t+delta_t
@@ -267,7 +361,7 @@ class Option_eu:
         option_option = self.option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
-        return theta
+        return theta/365.6
     def ThetaRisk(self):
         Theta_Option = self.Theta_DF()
         if self.asset.St>10:
@@ -298,6 +392,38 @@ class Option_eu:
         # Displaying the plot
         plt.show()
         return
+
+    def Theta_surface(self):
+        if self.asset.St > 10:
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
+
+        asset_st = self.asset.St
+        option_matu = self.T
+        list_theta = []
+
+        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+
+        for t in range_t:
+            self.T = option_matu - t
+            for st in range_st:
+                self.asset.St = st
+                list_theta.append(self.Theta_DF())
+
+        self.asset.St = asset_st
+        self.T = option_matu
+
+        range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
+        list_theta = np.array(list_theta).reshape(len(range_t), len(range_st))
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_theta, cmap='magma')
+        ax.set_title('Theta of the Option vs. Underlying Asset Price and Time')
+        ax.set_xlabel('Underlying Asset Price (St)')
+        ax.set_ylabel('Time to Maturity (T)')
+        ax.set_zlabel('Option Theta')
+        plt.show()
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
@@ -305,15 +431,21 @@ class Option_eu:
 
     def PnlRisk(self):
         Price_Option = self.option_price_close_formulae()
-        range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
+        # range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
+
+        if self.asset.St>10:
+            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        else:
+            range_st = [x/100 for x in range(round((self.asset.St - 1 ) *100), round((self.asset.St + 1 ) *100), 2)]
+
         asset_st = self.asset.St
         list_price = list()
         for st in range_st:
             self.asset.St = st
-            list_price.append(self.option_price_close_formulae())
+            list_price.append(self.option_price_close_formulae() - Price_Option)
         self.asset.St = asset_st
         plt.plot(range_st, list_price, label='Price vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Price_Option, 'x', label='Option Price at Specific Points',
+        plt.plot(self.asset.St, 0, 'x', label='Option Price at Specific Points',
                  color='red', markersize=10, markeredgewidth=2)
 
         # Adding titles and labels
@@ -329,14 +461,17 @@ class Option_eu:
 
         # Displaying the plot
         plt.show()
-        return
+        tableau_gains = pd.DataFrame(zip(range_st, list_price), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_gains.index = tableau_gains['Underlying Asset Price (St) move']
+        tableau_gains = tableau_gains['gains']
+        return tableau_gains
     def RiskAnalysis(self):
         self.DeltaRisk()
         self.GammaRisk()
         self.VegaRisk()
         self.ThetaRisk()
         return
-    def run_Booking(self):
+    def run_Booking(self, lot_size:int=None): #lot
         booking_file_path = 'Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
 
@@ -344,7 +479,7 @@ class Option_eu:
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
-        booking = {'position': position, 'type':type, 'quantité':np.sqrt(self.position**2), 'maturité':self.T*365.6, 'asset':self.asset.name, 'price asset':self.asset.St, 'option price': 100, 'option price th': self.option_price_close_formulae(),'strike': self.K, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365.6, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
         with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
@@ -416,7 +551,7 @@ class Option_prem_gen(Option_eu):
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, f"{self.type} payoff", "Asset price", "Payoff", isShow=True)
+        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
 
     def option_price_close_formulae(self):
         price_basket_options = 0
@@ -484,7 +619,7 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
             option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
         #greek_list = [i*position for i in greek_list]
-        plot_2d(St_range, greek_list, f"{greek} curve", "Prix de l'actif", greek, True)
+        plot_2d(St_range, greek_list, "Prix de l'actif", greek, True, f"{greek} curve")
         return
 
     for v in moving_param:
@@ -500,7 +635,7 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
             option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
             greek_list.append(option_obj.greek())
         greek_list = [i*position for i in greek_list]
-        plot_2d(St_range, greek_list, f"{greek} curve - {type_option}", "Prix de l'actif", greek, False)
+        plot_2d(St_range, greek_list, "Prix de l'actif", greek, False, f"{greek} curve - {type_option}")
     moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
     plt.legend(moving_param)
     plt.show()
