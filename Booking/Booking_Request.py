@@ -65,19 +65,19 @@ def run_Mtm(VI, LS):
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(2.391, -2, "HH NG2!")
-    option = Options_class.Option_eu(10, 'Call EU', stock, 2.5, 8/365.6, 0.1, 0.56)
+    stock = Asset_class.asset_BS(2.34, -2, "HH NG2!")
+    option = Options_class.Option_eu(10, 'Call EU', stock, 2.5, 6/365.6, 0.1, 0.6)
     book = Book_class.Book([option])
     print(book.option_price_close_formulae())
     book.RiskAnalysis()
     print(book.Delta_DF())
     df_pnl = book.PnlRisk()
-    option.Vega_surface()
-    option.Theta_surface()
+    # option.Vega_surface()
+    # option.Theta_surface()
     #
-    # book.get_move_deltahedge()
+    book.get_move_deltahedge()
     # # # #
     # #
     # booking_request = Booking_Request(stock)
     # booking_request.run_Booking(lot_size=10000)
-    # run_Mtm(VI=0.56, LS=10000)
+    # run_Mtm(VI=0.6, LS=10000)

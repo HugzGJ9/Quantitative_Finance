@@ -11,6 +11,7 @@ from tkinter import ttk
 from Graphics.Graphics import plot_2d
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, payoff_call_eu_barrier
+import plotly.graph_objects as go
 
 class Option_eu:
     #root parameter to
@@ -199,15 +200,23 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_delta = np.array(list_delta).reshape(len(range_t), len(range_st))
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_delta, cmap='magma')
-        ax.set_title('Delta of the Option vs. Underlying Asset Price and Time')
-        ax.set_xlabel('Underlying Asset Price (St)')
-        ax.set_ylabel('Time to Maturity (T)')
-        ax.set_zlabel('Option Delta')
-        plt.show()
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_delta, cmap='magma')
+        # ax.set_title('Delta of the Option vs. Underlying Asset Price and Time')
+        # ax.set_xlabel('Underlying Asset Price (St)')
+        # ax.set_ylabel('Time to Maturity (T)')
+        # ax.set_zlabel('Option Delta')
+        # plt.show()
 
+        fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig.update_layout(title='Delta of the Option vs. Underlying Asset Price and Time',
+                          scene=dict(
+                              xaxis_title='Underlying Asset Price (St)',
+                              yaxis_title='Time to Maturity (T, days)',
+                              zaxis_title='Option Delta'
+                          ))
+        fig.show()
     def Gamma_DF(self):
         delta_St = 0.00001
         asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
@@ -276,14 +285,14 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_gamma = np.array(list_gamma).reshape(len(range_t), len(range_st))
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_gamma, cmap='magma')
-        ax.set_title('Gamma of the Option vs. Underlying Asset Price and Time')
-        ax.set_xlabel('Underlying Asset Price (St)')
-        ax.set_ylabel('Time to Maturity (T)')
-        ax.set_zlabel('Option Gamma')
-        plt.show()
+        fig = go.Figure(data=[go.Surface(z=list_gamma, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig.update_layout(title='Gamma of the Option vs. Underlying Asset Price and Time',
+                          scene=dict(
+                              xaxis_title='Underlying Asset Price (St)',
+                              yaxis_title='Time to Maturity (T, days)',
+                              zaxis_title='Option Gamma'
+                          ))
+        fig.show()
     def Vega_DF(self):
         delta_vol = 0.00001
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
@@ -344,14 +353,14 @@ class Option_eu:
 
         range_sigma_mesh, range_t_mesh = np.meshgrid(range_sigma, range_t)
         list_vega = np.array(list_vega).reshape(len(range_t), len(range_sigma))
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(range_sigma_mesh, range_t_mesh*365.6, list_vega, cmap='magma')
-        ax.set_title('Vega of the Option vs. Underlying Asset Price and Time')
-        ax.set_xlabel('Volatility (sigma)')
-        ax.set_ylabel('Time to Maturity (T)')
-        ax.set_zlabel('Option Vega')
-        plt.show()
+        fig = go.Figure(data=[go.Surface(z=list_vega, x=range_sigma_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig.update_layout(title='Vega of the Option vs. Underlying Asset Price and Time',
+                          scene=dict(
+                              xaxis_title='Underlying Asset Price (St)',
+                              yaxis_title='Time to Maturity (T, days)',
+                              zaxis_title='Option Vega'
+                          ))
+        fig.show()
     def Theta_DF(self):
         delta_t = 0.00001
         self.t = self.t+delta_t
@@ -416,14 +425,14 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_theta = np.array(list_theta).reshape(len(range_t), len(range_st))
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_theta, cmap='magma')
-        ax.set_title('Theta of the Option vs. Underlying Asset Price and Time')
-        ax.set_xlabel('Underlying Asset Price (St)')
-        ax.set_ylabel('Time to Maturity (T)')
-        ax.set_zlabel('Option Theta')
-        plt.show()
+        fig = go.Figure(data=[go.Surface(z=list_theta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig.update_layout(title='Theta of the Option vs. Underlying Asset Price and Time',
+                          scene=dict(
+                              xaxis_title='Underlying Asset Price (St)',
+                              yaxis_title='Time to Maturity (T, days)',
+                              zaxis_title='Option Theta'
+                          ))
+        fig.show()
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
