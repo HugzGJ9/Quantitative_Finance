@@ -16,17 +16,26 @@ from Asset_Modeling.BM_def import BM
 import numpy as np
 import yfinance as yf
 def simu_actif(init, t:int, T:int, mu, sigma, N=None):
-    sigma_daily = sigma / np.sqrt(24*365.6)
-    mu = mu/365.6
-    T = T*365.6
-    if not N:
-        N = int((T-t)*24)
+    sigma_hourly = sigma/np.sqrt(365)
+    mu_hourly = mu/365
+    T = T*365
+    t = t*365
+    time_horizon = T - t
+
+    if N is None:
+        N = int(time_horizon * 24)
+
+    if N <= 0:
+        raise ValueError("Number of simulation steps (N) must be greater than 0.")
+
     St = [init]
-    BM_ = BM(N, T-t)
-    delta_t = (T-t)/N
+    BM_ = BM(N, time_horizon)
+    delta_t = time_horizon / N
+
     for i in range(N):
-        BM_delta = BM_[i+1] - BM_[i]
-        St.append(St[i]*np.exp((mu-0.5*sigma_daily**2)*delta_t + sigma_daily*BM_delta))
+        BM_delta = BM_[i + 1] - BM_[i]
+        St.append(St[i] * np.exp((mu_hourly - 0.5 * sigma_hourly ** 2) * delta_t + sigma_hourly * BM_delta))
+
     return St
 
 def payoff_call_eu(ST, K):
@@ -49,13 +58,13 @@ def simu_stock_vs_hist(ticker_symbol):
     St = stock_data['Close'].iloc[0]
     N = stock_data['Close'].size - 1
     x = stock_data.index.to_list()
-    y = simu_actif(St, N, 0, N/365.6, mu, sigma)
+    y = simu_actif(St, N, 0, N/365, mu, sigma)
     plt.plot(x, y)
     plt.legend(lengend)
     plt.show()
 
 if __name__ == '__main__':
     for i in range(150):
-        St = simu_actif(50, 0, 1/365.6, 0.2, 0.6)
+        St = simu_actif(50, 0, 1/365, 0.2, 0.6)
         plt.plot(St)
     plt.show()

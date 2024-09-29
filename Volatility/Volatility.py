@@ -7,12 +7,12 @@ import pandas as pd
 import yfinance as yf
 from toolbox import keep_after_dash, keep_before_dash
 from Graphics.Graphics import plot_2d
-
+import os
 def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, isCrypto=False):
     t = 0
     epsilon = 0.0001
     maturity = pd.Timestamp(maturity_date) - datetime.datetime.now()
-    T = maturity.days / 365.6
+    T = maturity.days / 365
     stock_obj = yf.Ticker(stock_name)
     S0 = stock_obj.history().tail(1)['Close'].values[0]
 
@@ -83,6 +83,45 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, i
     result = dict(zip(strikes, vol_implicite))
     return result
 
+def volatilityReport(ticker='NG=F'):
+    os.chdir('..')
+    booking_file_path = f'Booking/Volatility_history_{ticker}.xlsx'
+    booking_file_sheet_name = 'volatility'
+    data = yf.download(ticker, start='2023-01-01', end='2024-09-22', interval='1h')
+    data = data.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
+    data['return'] = data['Close'].pct_change()
+    df_daily_vol = data.resample('D').std()*np.sqrt(252)*100
+    df_weekly_vol = data.resample('W').std()*np.sqrt(252)*100
+    data['4H_vol'] = data['return'].rolling(window=4).std()*np.sqrt(252)*100
+    data = data.drop(columns=['Close'])
+    df_daily_vol = df_daily_vol.drop(columns=['Close'])
+    df_weekly_vol = df_weekly_vol.drop(columns=['Close'])
+    data['date&time'] = data.index.tz_localize(None)
+    df_daily_vol['date&time'] = df_daily_vol.index.tz_localize(None)
+    df_weekly_vol['date&time'] = df_weekly_vol.index.tz_localize(None)
 
+    with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+        data.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly', index=False)
+        df_daily_vol.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly to day', index=False)
+        df_weekly_vol.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly to week', index=False)
+
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+    end_date = datetime.datetime.now().strftime('%Y-%m-%d')
+    data = yf.download('NG=F', start=start_date, end=end_date, interval='1m')
+    data = data.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
+    data['return'] = data['Close'].pct_change()
+    data['30m_vol'] = data['return'].rolling(window=30).std() * np.sqrt(252*24*60) * 100
+    data['1H_vol'] = data['return'].rolling(window=60).std() * np.sqrt(252*24*60) * 100
+    data['2H_vol'] = data['return'].rolling(window=60*2).std() * np.sqrt(252*24*60) * 100
+    data['4H_vol'] = data['return'].rolling(window=60*4).std() * np.sqrt(252*24*60) * 100
+    data['8H_vol'] = data['return'].rolling(window=60*8).std() * np.sqrt(252*24*60) * 100
+    data['16H_vol'] = data['return'].rolling(window=60*16).std() * np.sqrt(252*24*60) * 100
+    data['24H_vol'] = data['return'].rolling(window=60*24).std() * np.sqrt(252*24*60) * 100
+    data = data.drop(columns=['Close'])
+    data['date&time'] = data.index.tz_localize(None)
+    with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+        data.to_excel(writer, sheet_name=f'{booking_file_sheet_name}', index=False)
+
+    return
 if __name__ == '__main__':
     vol = Volatilite_implicite('AAPL', '2024-12-20', 'Call EU', 0.04, plot=True, isCrypto=False)

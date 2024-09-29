@@ -81,7 +81,7 @@ class Book(Option_eu):
         option_matu = [option.T for option in self.basket]
         list_delta = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(min(option_matu) * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(min(option_matu) * 100*365), 2)]
 
         for t in range_t:
             for option in self.basket:
@@ -96,7 +96,7 @@ class Book(Option_eu):
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_delta = np.array(list_delta).reshape(len(range_t), len(range_st))
 
-        fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Delta of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -116,7 +116,7 @@ class Book(Option_eu):
         option_matu = [option.T for option in self.basket]
         list_gamma = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(min(option_matu) * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(min(option_matu) * 100*365), 2)]
 
         for t in range_t:
             for option in self.basket:
@@ -130,7 +130,7 @@ class Book(Option_eu):
             option.T=matu
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_gamma = np.array(list_gamma).reshape(len(range_t), len(range_st))
-        fig = go.Figure(data=[go.Surface(z=list_gamma, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_gamma, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Gamma of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -145,7 +145,7 @@ class Book(Option_eu):
         option_matu = [option.T for option in self.basket]
         list_vega = []
         range_sigma = [sigma / 100 for sigma in range(round(vol_option * 100*0.5), round(vol_option * 100*1.5), 2)]
-        range_t = [t / (365.6*100) for t in range(0, round(min(option_matu) * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(min(option_matu) * 100*365), 2)]
 
         for t in range_t:
             for option in self.basket:
@@ -159,7 +159,7 @@ class Book(Option_eu):
             option.T=matu
         range_sigma_mesh, range_t_mesh = np.meshgrid(range_sigma, range_t)
         list_vega = np.array(list_vega).reshape(len(range_t), len(range_sigma))
-        fig = go.Figure(data=[go.Surface(z=list_vega, x=range_sigma_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_vega, x=range_sigma_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Vega of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -179,7 +179,7 @@ class Book(Option_eu):
         option_matu = [option.T for option in self.basket]
         list_theta = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(min(option_matu) * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(min(option_matu) * 100*365), 2)]
 
         for t in range_t:
             for option in self.basket:
@@ -193,7 +193,7 @@ class Book(Option_eu):
             option.T=matu
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_theta = np.array(list_theta).reshape(len(range_t), len(range_st))
-        fig = go.Figure(data=[go.Surface(z=list_theta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_theta, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Theta of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',

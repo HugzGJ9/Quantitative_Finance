@@ -12,14 +12,22 @@ if __name__ == '__main__':
     K = 100
     vol = 0.6
     r = 0.1
-    T = 5/365.6
-    T2 = 100/365.6
+    T = 5/365
+    T2 = 100/365
 
     S0 = 100
     strike = 100
 
-    stock1 = asset_BS(2.240, 0)
-    callEU = Option_eu(1, 'Call EU', stock1, 2.24, 14/365.6, r, 0.6)
+    stock1 = asset_BS(100, 0)
+    callEU = Option_eu(1, 'Call Up & Out', stock1, 100, 1, 0.02, 0.15, barrier=120)
+
+    option1 = Option_eu(1, 'Call EU', stock1, 100, 1, 0.02, 0.15)
+    option1.option_price_mc()
+    option2 = Option_eu(-1, 'Call EU', stock1, 120, 1, 0.02, 0.15)
+    option3 = Option_eu(1, 'Call EU', stock1, 130, 1, 0.02, 0.15)
+    book1 = Book([option1, option2, option3])
+
+    callEU.option_price_mc()
     callEU.display_payoff_option()
     callEU.RiskAnalysis()
     callEU.PnlRisk()

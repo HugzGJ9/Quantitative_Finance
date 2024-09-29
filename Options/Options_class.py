@@ -20,7 +20,7 @@ class Option_eu:
         self.asset = asset
         self.type = type
         self.K = K
-        self.t = (len(self.asset.history)-1)/(365.6*24)
+        self.t = (len(self.asset.history)-1)/(365*24)
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -78,7 +78,7 @@ class Option_eu:
             self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
 
     def update_t(self, days):
-        self.t = days/365.6
+        self.t = days/365
         return
     def get_payoff_option(self, ST:int)->int:
 
@@ -110,13 +110,10 @@ class Option_eu:
         #     short_call = close_formulae_call_eu(self.asset.St, self.K_2, self.t, self.T, self.r, self.sigma)
         #     option_price = long_call - short_call
         #     return option_price
-    def option_price_mc(self):
+    def option_price_mc(self, Nmc=1000):
         prix_option = 0
-        Nmc = 5000
         for i in range(Nmc):
-            t_days = self.t*365.6
-            T_days = self.T*365.6
-            prix_actif = simu_actif(self.asset.St, t_days, T_days, self.r, self.sigma)
+            prix_actif = simu_actif(self.asset.St, self.t, self.T, self.r, self.sigma)
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
             elif self.type == "Put EU":
@@ -125,17 +122,58 @@ class Option_eu:
                 prix_option += payoff_call_asian(prix_actif, self.K)
             elif self.type == "Put Asian":
                 prix_option += payoff_put_asian(prix_actif, self.K)
-            elif self.type == "Call In & Out":
+            elif self.type == "Call Up & Out":
                 activation_barrier = True in [self.barrier<St for St in prix_actif]
+                if activation_barrier:
+                    print('barrier activated')
+                    plt.plot(prix_actif, color='red')
+                else:
+                    plt.plot(prix_actif, color='green')
                 prix_option += payoff_call_eu_barrier(prix_actif[-1], self.K, activation_barrier)
         prix_option = np.exp(-self.r*(self.T-self.t))*prix_option / Nmc
 
-        # self.result_label.config(text=f"Option Price: {prix_option:.4f}")
         return self.position*prix_option
 
-    # def Delta(self):
-    #     option_delta = (delta_option_eu(self.position, self.type, self.asset, self.K, self.t, self.T, self.r, self.sigma))
-    #     return option_delta
+    def option_price_binomial_tree(self, daily=True):
+        """
+        Price an option using the binomial tree model.
+
+        Parameters:
+        daily (bool): If True, use daily steps. If False, use annual steps.
+
+        Returns:
+        float: Option price at the root of the binomial tree.
+        """
+        steps_per_year = 365 if daily else 1
+        volatility = self.sigma / np.sqrt(steps_per_year) if daily else self.sigma
+
+        up = 1 + volatility
+        down = 1 - volatility
+        discount_factor = np.exp(-self.r / steps_per_year)
+        q = (np.exp(self.r / steps_per_year) - down) / (up - down)
+
+        time_to_expiry = int((self.T - self.t) * steps_per_year)
+
+        asset_list = [[self.asset.St]]
+
+        for _ in range(time_to_expiry):
+            previous_prices = asset_list[-1]
+            new_prices = [price * up for price in previous_prices] + [price * down for price in previous_prices]
+            asset_list.append(new_prices)
+
+        if 'Call' in self.type:
+            option_values = [max(price - self.K, 0) for price in asset_list[-1]]
+        elif 'Put' in self.type:
+            option_values = [max(self.K - price, 0) for price in asset_list[-1]]
+
+        for n in range(time_to_expiry - 1, -1, -1):
+            option_values = [
+                discount_factor * (q * option_values[i] + (1 - q) * option_values[i + 1])
+                for i in range(0, len(option_values), 2)
+            ]
+
+        return option_values[0]
+
     def Delta_DF(self):
         delta_St = 0.00001
         asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
@@ -187,7 +225,7 @@ class Option_eu:
         option_matu = self.T
         list_delta = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
         for t in range_t:
             self.T = option_matu - t
@@ -202,14 +240,14 @@ class Option_eu:
         list_delta = np.array(list_delta).reshape(len(range_t), len(range_st))
         # fig = plt.figure()
         # ax = fig.add_subplot(111, projection='3d')
-        # ax.plot_surface(range_st_mesh, range_t_mesh*365.6, list_delta, cmap='magma')
+        # ax.plot_surface(range_st_mesh, range_t_mesh*365, list_delta, cmap='magma')
         # ax.set_title('Delta of the Option vs. Underlying Asset Price and Time')
         # ax.set_xlabel('Underlying Asset Price (St)')
         # ax.set_ylabel('Time to Maturity (T)')
         # ax.set_zlabel('Option Delta')
         # plt.show()
 
-        fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Delta of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -272,7 +310,7 @@ class Option_eu:
         option_matu = self.T
         list_gamma = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
         for t in range_t:
             self.T = option_matu - t
@@ -285,7 +323,7 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_gamma = np.array(list_gamma).reshape(len(range_t), len(range_st))
-        fig = go.Figure(data=[go.Surface(z=list_gamma, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_gamma, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Gamma of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -340,7 +378,7 @@ class Option_eu:
         option_matu = self.T
         list_vega = []
         range_sigma = [sigma / 100 for sigma in range(round(self.sigma * 100*0.5), round(self.sigma * 100*1.5), 2)]
-        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
         for t in range_t:
             self.T = option_matu - t
@@ -353,7 +391,7 @@ class Option_eu:
 
         range_sigma_mesh, range_t_mesh = np.meshgrid(range_sigma, range_t)
         list_vega = np.array(list_vega).reshape(len(range_t), len(range_sigma))
-        fig = go.Figure(data=[go.Surface(z=list_vega, x=range_sigma_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_vega, x=range_sigma_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Vega of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -370,7 +408,7 @@ class Option_eu:
         option_option = self.option_price_close_formulae()
 
         theta = (option_delta_t - option_option) / delta_t
-        return theta/365.6
+        return theta/365
     def ThetaRisk(self):
         Theta_Option = self.Theta_DF()
         if self.asset.St>10:
@@ -412,7 +450,7 @@ class Option_eu:
         option_matu = self.T
         list_theta = []
 
-        range_t = [t / (365.6*100) for t in range(0, round(self.T * 100*365.6), 2)]
+        range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
         for t in range_t:
             self.T = option_matu - t
@@ -425,7 +463,7 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_theta = np.array(list_theta).reshape(len(range_t), len(range_st))
-        fig = go.Figure(data=[go.Surface(z=list_theta, x=range_st_mesh, y=range_t_mesh * 365.6, colorscale='magma')])
+        fig = go.Figure(data=[go.Surface(z=list_theta, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Theta of the Option vs. Underlying Asset Price and Time',
                           scene=dict(
                               xaxis_title='Underlying Asset Price (St)',
@@ -436,7 +474,7 @@ class Option_eu:
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]
-        self.t = self.t + time/365.6
+        self.t = self.t + time/365
 
     def PnlRisk(self):
         Price_Option = self.option_price_close_formulae()
@@ -488,7 +526,7 @@ class Option_eu:
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
-        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365.6, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
         with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
@@ -500,7 +538,7 @@ class Option_prem_gen(Option_eu):
         self.type = type
         self.asset = asset
         self.K = K
-        self.t = (len(self.asset.history)-1)/365.6
+        self.t = (len(self.asset.history)-1)/365
         self.T = T
         self.r = r
         self.sigma = sigma
@@ -516,8 +554,8 @@ class Option_prem_gen(Option_eu):
             self.options = [self.long_call, self.short_call]
 
         if type == "Put Spread":
-            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
-            self.short_put = Option_eu(-1, "Put EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
+            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.T, self.r, self.sigma)
+            self.short_put = Option_eu(-1, "Put EU", self.asset, self.K[1], self.T, self.r, self.sigma)
             self.positions = [1, -1]
             self.positions = [i*self.position for i in self.positions]
             self.long_put.position = self.positions[0]
@@ -525,8 +563,8 @@ class Option_prem_gen(Option_eu):
             self.options = [self.long_put, self.short_put]
 
         if type == "Strangle":
-            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.t, self.T, self.r, self.sigma)
-            self.long_call = Option_eu(1, "Call EU", self.asset, self.K[1], self.t, self.T, self.r, self.sigma)
+            self.long_put = Option_eu(1, "Put EU", self.asset, self.K[0], self.T, self.r, self.sigma)
+            self.long_call = Option_eu(1, "Call EU", self.asset, self.K[1], self.T, self.r, self.sigma)
             self.positions = [1, 1] #1 : long position, -1 : short position
             self.positions = [i*self.position for i in self.positions]
             self.long_put.position = self.positions[0]
@@ -540,7 +578,7 @@ class Option_prem_gen(Option_eu):
             Call2_price = self.short_call.option_price_close_formulae()
             return (Call1_price - Call2_price)'''
     def update_t(self, days):
-        #self.t = days / 365.6
+        #self.t = days / 365
         for option in self.options:
             option.update_t(days)
         return
@@ -648,3 +686,99 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
     plt.legend(moving_param)
     plt.show()
+
+class Option_ame:
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
+        self.position = position
+        self.asset = asset
+        self.type = type
+        self.K = K
+        self.t = (len(self.asset.history) - 1) / (365 * 24)
+        self.T = T
+        self.r = r
+        self.sigma = sigma
+    def option_price_lsmc(self, Nmc=1000):
+
+        discount_factor = np.exp(-self.r /365)
+        t_days = self.t * 365
+        T_days = self.T * 365
+        asset_paths = np.empty((Nmc, int((T_days-t_days)*24)+1))
+        for i in range(Nmc):
+            asset_path = simu_actif(self.asset.St, self.t, self.T, self.r, self.sigma)
+            asset_paths[i, :] = asset_path
+        if self.type == 'Call US':
+            payoff = np.maximum(asset_paths[:, -1] - self.K, 0)
+        elif self.type == 'Put US':
+            payoff = np.maximum(self.K - asset_paths[:, -1], 0)
+
+        option_value = payoff.copy()
+
+        for t in range(len(asset_path) - 1, 0, -1):
+            if self.type == 'Call US':
+                in_the_money = np.where(asset_paths[:, t] > self.K)[0]
+            elif self.type == 'Put US':
+                in_the_money = np.where(asset_paths[:, t] < self.K)[0]
+            X = asset_paths[in_the_money, t]
+            Y = option_value[in_the_money] * discount_factor
+
+            poly = np.polyfit(X, Y, deg=2)
+            continuation_value = np.polyval(poly, X)
+            if self.type == 'Call US':
+                immediate_exercise_value = X - self.K
+            elif self.type == 'Put US':
+                immediate_exercise_value = self.K - X
+            exercise = immediate_exercise_value > continuation_value
+
+            option_value[in_the_money[exercise]] = immediate_exercise_value[exercise]
+        option_price = np.mean(option_value) * discount_factor
+
+        return option_price
+    def option_price_binomial_tree(self, daily=True):
+        steps_per_year = 365 if daily else 1
+        volatility = self.sigma / np.sqrt(steps_per_year) if daily else self.sigma
+
+        up = 1 + volatility
+        down = 1 - volatility
+        discount_factor = np.exp(-self.r / steps_per_year)
+        q = (np.exp(self.r / steps_per_year) - down) / (up - down)
+
+        time_to_expiry = int((self.T - self.t) * steps_per_year)
+
+        asset_list = [[self.asset.St]]
+
+        for _ in range(time_to_expiry):
+            previous_prices = asset_list[-1]
+            new_prices = [price * up for price in previous_prices] + [price * down for price in previous_prices]
+            asset_list.append(new_prices)
+
+        if 'Call' in self.type:
+            option_values = [max(price - self.K, 0) for price in asset_list[-1]]
+        elif 'Put' in self.type:
+            option_values = [max(self.K - price, 0) for price in asset_list[-1]]
+
+        for n in range(time_to_expiry - 1, -1, -1):
+            option_values = [
+                discount_factor * (q * option_values[i] + (1 - q) * option_values[i + 1])
+                for i in range(0, len(option_values), 2)
+            ]
+
+            if 'Call' in self.type:
+                option_values = [max(option_values[i], asset_list[n][i] - self.K) for i in
+                                 range(len(option_values))]
+            elif 'Put' in self.type:
+                option_values = [max(option_values[i], self.K - asset_list[n][i]) for i in
+                                 range(len(option_values))]
+
+        return option_values[0]
+
+if __name__ == '__main__':
+    stock1 = asset_BS(100, 0)
+    # price1 = optionUS.option_price_lsmc(Nmc=1000)
+    # optionEU = Option_eu(1, 'Call EU', stock1, 100, 10/365, 0.05, 0.2)
+    # price1 = optionEU.option_price_binomial_tree()
+    optionUS = Option_ame(1, 'Put US', stock1, 100, 25/365, 0.05, 0.5)
+    # price2 = optionUS.option_price_binomial_tree()
+    optionUS.option_price_lsmc()
+    # price2 = optionEU.option_price_mc()
+    # price3 = optionEU.option_price_close_formulae()
+    print('etst')

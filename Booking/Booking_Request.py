@@ -1,8 +1,10 @@
+import numpy as np
 import pandas as pd
 import datetime
 from Options import Book_class
 from Options import Options_class
 from Asset_Modeling import Asset_class
+from Volatility.Volatility import volatilityReport
 import yfinance as yf
 class Booking_Request():
     def __init__(self, Book:Book_class.Book=None, Option:Options_class.Option_eu=None,
@@ -29,7 +31,7 @@ def run_Mtm(VI, LS):
         else:
             delta = datetime.datetime.now().date() - pd.to_datetime(position['date heure']).date()
             time2matu=position.maturité - delta.total_seconds() / (24 * 3600)
-            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365.6, 0.1, VI)
+            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, VI)
             list_of_positions.append(option)
 
     book = Book_class.Book(list_of_positions)
@@ -37,7 +39,7 @@ def run_Mtm(VI, LS):
     MtM = pd.DataFrame(columns=['open position', 'type', 'time to maturity', 'strike', 'quantity', 'asset', 'asset price', 'MtM', 'moneyness %', 's-p', 'pnl', 'opnl', 'delta', 'gamma', 'vega', 'theta'])
     for i in range(len(book.basket)):
 
-        MtM.loc[i] = {'open position':'long' if book.basket[i].position>0 else 'short', 'type': book.basket[i].type, 'time to maturity':book.basket[i].T*365.6, 'strike':book.basket[i].K, 'quantity': book.basket[i].position, 'asset':book.basket[i].asset.name, 'asset price':book.basket[i].asset.St, 'MtM':book.basket[i].option_price_close_formulae()*LS, 'moneyness %': (book.basket[i].asset.St/book.basket[i].K - 1)*100, 's-p':None, 'pnl': None, 'opnl':None, 'delta':book.basket[i].Delta_DF(), 'gamma':book.basket[i].Gamma_DF(), 'vega':book.basket[i].Vega_DF(), 'theta': book.basket[i].Theta_DF()}
+        MtM.loc[i] = {'open position':'long' if book.basket[i].position>0 else 'short', 'type': book.basket[i].type, 'time to maturity':book.basket[i].T*365, 'strike':book.basket[i].K, 'quantity': book.basket[i].position, 'asset':book.basket[i].asset.name, 'asset price':book.basket[i].asset.St, 'MtM':book.basket[i].option_price_close_formulae()*LS, 'moneyness %': (book.basket[i].asset.St/book.basket[i].K - 1)*100, 's-p':None, 'pnl': None, 'opnl':None, 'delta':book.basket[i].Delta_DF(), 'gamma':book.basket[i].Gamma_DF(), 'vega':book.basket[i].Vega_DF(), 'theta': book.basket[i].Theta_DF()}
 
     MtM.loc[len(MtM)] = {'open position': 'long' if asset.quantity>0 else 'short',
                         'type': 'Asset',
@@ -65,19 +67,22 @@ def run_Mtm(VI, LS):
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(2.34, -2, "HH NG2!")
-    option = Options_class.Option_eu(10, 'Call EU', stock, 2.5, 6/365.6, 0.1, 0.6)
-    book = Book_class.Book([option])
-    print(book.option_price_close_formulae())
-    book.RiskAnalysis()
-    print(book.Delta_DF())
-    df_pnl = book.PnlRisk()
-    # option.Vega_surface()
-    # option.Theta_surface()
+    # stock = Asset_class.asset_BS(2.624, 0, "HH NG2!")
+    # option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
+    volatilityReport()
+    # book = Book_class.Book([option])
     #
-    book.get_move_deltahedge()
+
+    # print(book.option_price_close_formulae())
+    # book.RiskAnalysis()
+    # print(book.Delta_DF())
+    # df_pnl = book.PnlRisk()
+    # # option.Vega_surface()
+    # # option.Theta_surface()
+    # #
+    # book.get_move_deltahedge()
     # # # #
     # #
-    # booking_request = Booking_Request(stock)
+    # booking_request = Booking_Request(option)
     # booking_request.run_Booking(lot_size=10000)
-    # run_Mtm(VI=0.6, LS=10000)
+    # run_Mtm(VI=0.62, LS=10000)

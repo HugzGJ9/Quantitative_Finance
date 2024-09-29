@@ -18,7 +18,7 @@ class asset_BS():
         for st in St:
             self.history.append(st)
         self.St = self.history[-1]
-        self.t = self.t + T / 365.6
+        self.t = self.t + T / 365
     def plot(self):
         plot_2d(list(range(len(self.history))), self.history, title='Asset Price Path', x_axis='t', y_axis='asset price', isShow=True)
     def Delta_DF(self):
@@ -45,5 +45,5 @@ class asset_BS():
 
 if __name__ == '__main__':
     stock1 = asset_BS(2.240, 0, mu=0.1, sigma=0.2)
-    stock1.simu_asset(1/365.6)
+    stock1.simu_asset(1/365)
     stock1.plot()
