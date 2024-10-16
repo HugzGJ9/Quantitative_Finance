@@ -6,8 +6,12 @@ import datetime
 import pandas as pd
 import yfinance as yf
 from toolbox import keep_after_dash, keep_before_dash
-from Graphics.Graphics import plot_2d
+from Graphics.Graphics import plot_2d, correl_plot
 import os
+import matplotlib.pyplot as plt
+
+os.chdir('..')
+
 def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, isCrypto=False):
     t = 0
     epsilon = 0.0001
@@ -83,45 +87,87 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, i
     result = dict(zip(strikes, vol_implicite))
     return result
 
-def volatilityReport(ticker='NG=F'):
-    os.chdir('..')
+def volatilityReport(ticker='NG=F', ticker2=None):
     booking_file_path = f'Booking/Volatility_history_{ticker}.xlsx'
     booking_file_sheet_name = 'volatility'
-    data = yf.download(ticker, start='2023-01-01', end='2024-09-22', interval='1h')
-    data = data.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
-    data['return'] = data['Close'].pct_change()
-    df_daily_vol = data.resample('D').std()*np.sqrt(252)*100
-    df_weekly_vol = data.resample('W').std()*np.sqrt(252)*100
-    data['4H_vol'] = data['return'].rolling(window=4).std()*np.sqrt(252)*100
-    data = data.drop(columns=['Close'])
+    data_hourly = yf.download(ticker, start='2023-01-01', end='2024-09-22', interval='1h')
+
+    if ticker2:
+        data_hourly2 = yf.download(ticker2, start='2023-01-01', end='2024-09-22', interval='1h')
+        data_hourly = data_hourly - data_hourly2
+        booking_file_path = f'Booking/Volatility_history_spread_{ticker}-{ticker2}.xlsx'
+
+    data_hourly = data_hourly.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
+    data_hourly['return'] = data_hourly['Close'].pct_change()
+    df_daily_vol = data_hourly.resample('D').std()*np.sqrt(252)*100
+    df_weekly_vol = data_hourly.resample('W').std()*np.sqrt(252)*100
+    data_hourly['4H_vol'] = data_hourly['return'].rolling(window=4).std()*np.sqrt(252)*100
+    data_hourly = data_hourly.drop(columns=['Close'])
     df_daily_vol = df_daily_vol.drop(columns=['Close'])
     df_weekly_vol = df_weekly_vol.drop(columns=['Close'])
-    data['date&time'] = data.index.tz_localize(None)
+    data_hourly['date&time'] = data_hourly.index.tz_localize(None)
     df_daily_vol['date&time'] = df_daily_vol.index.tz_localize(None)
     df_weekly_vol['date&time'] = df_weekly_vol.index.tz_localize(None)
 
     with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        data.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly', index=False)
+        data_hourly.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly', index=False)
         df_daily_vol.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly to day', index=False)
         df_weekly_vol.to_excel(writer, sheet_name=f'{booking_file_sheet_name} hourly to week', index=False)
 
     start_date = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
     end_date = datetime.datetime.now().strftime('%Y-%m-%d')
-    data = yf.download('NG=F', start=start_date, end=end_date, interval='1m')
-    data = data.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
-    data['return'] = data['Close'].pct_change()
-    data['30m_vol'] = data['return'].rolling(window=30).std() * np.sqrt(252*24*60) * 100
-    data['1H_vol'] = data['return'].rolling(window=60).std() * np.sqrt(252*24*60) * 100
-    data['2H_vol'] = data['return'].rolling(window=60*2).std() * np.sqrt(252*24*60) * 100
-    data['4H_vol'] = data['return'].rolling(window=60*4).std() * np.sqrt(252*24*60) * 100
-    data['8H_vol'] = data['return'].rolling(window=60*8).std() * np.sqrt(252*24*60) * 100
-    data['16H_vol'] = data['return'].rolling(window=60*16).std() * np.sqrt(252*24*60) * 100
-    data['24H_vol'] = data['return'].rolling(window=60*24).std() * np.sqrt(252*24*60) * 100
-    data = data.drop(columns=['Close'])
-    data['date&time'] = data.index.tz_localize(None)
+    data_min = yf.download(ticker, start=start_date, end=end_date, interval='1m')
+    if ticker2:
+        data_min2 = yf.download(ticker2, start=start_date, end=end_date, interval='1m')
+        data_min = data_min - data_min2
+    data_min = data_min.drop(columns=['Open', 'High', 'Low', 'Adj Close', 'Volume'])
+    data_min['return'] = data_min['Close'].pct_change()
+    data_min['30m_vol'] = data_min['return'].rolling(window=30).std() * np.sqrt(252*24*60) * 100
+    data_min['1H_vol'] = data_min['return'].rolling(window=60).std() * np.sqrt(252*24*60) * 100
+    data_min['2H_vol'] = data_min['return'].rolling(window=60*2).std() * np.sqrt(252*24*60) * 100
+    data_min['4H_vol'] = data_min['return'].rolling(window=60*4).std() * np.sqrt(252*24*60) * 100
+    data_min['8H_vol'] = data_min['return'].rolling(window=60*8).std() * np.sqrt(252*24*60) * 100
+    data_min['16H_vol'] = data_min['return'].rolling(window=60*16).std() * np.sqrt(252*24*60) * 100
+    data_min['24H_vol'] = data_min['return'].rolling(window=60*24).std() * np.sqrt(252*24*60) * 100
+    data_min = data_min.drop(columns=['Close'])
+    data_min['date&time'] = data_min.index.tz_localize(None)
     with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-        data.to_excel(writer, sheet_name=f'{booking_file_sheet_name}', index=False)
+        data_min.to_excel(writer, sheet_name=f'{booking_file_sheet_name}', index=False)
 
-    return
+    return data_hourly, data_min
+
+def computecorr(ticker1, ticker2):
+    data_hourly = yf.download(ticker1, start='2024-01-01', end=datetime.datetime.now().strftime("%Y-%m-%d"), interval='1h')
+    data_hourly2 = yf.download(ticker2, start='2024-01-01', end=datetime.datetime.now().strftime("%Y-%m-%d"), interval='1h')
+    # 1. Resample the data to monthly groups based on the index (datetime index)
+    data_hourly['Close'].plot(label=ticker1)
+    data_hourly2['Close'].plot(label=ticker2)
+    plt.title(f"Price {ticker1} - {ticker2} evolution")
+    plt.legend()
+
+    plt.show()
+    data_hourly['Month'] = data_hourly.index.to_period('M')
+    data_hourly2['Month'] = data_hourly2.index.to_period('M')
+
+    # 2. Merge the two DataFrames on index and the 'Month' column
+    merged_df = pd.merge(data_hourly, data_hourly2, left_index=True, right_index=True, suffixes=('_left', '_right'))
+
+    # 3. Group by the 'Month' and calculate the correlation for each month
+    monthly_correlations = merged_df.groupby('Month_left')[['Close_left', 'Close_right']].corr().iloc[0::2, 1].reset_index()
+
+    # Rename columns for clarity
+    monthly_correlations.columns = ['Month', 'todrop', 'Correlation']
+    monthly_correlations = monthly_correlations.drop(columns=['todrop'])
+    correl_plot(monthly_correlations['Correlation'], 'month', 'Correlation', f'Monthly correlation evolution {ticker1} / {ticker2}')
+    return monthly_correlations
+
 if __name__ == '__main__':
-    vol = Volatilite_implicite('AAPL', '2024-12-20', 'Call EU', 0.04, plot=True, isCrypto=False)
+    # vol = Volatilite_implicite('AAPL', '2024-12-20', 'Call EU', 0.04, plot=True, isCrypto=False)
+
+    # NGF_hourly, NGF_min = volatilityReport('NG=F')
+    # TTF_hourly, TTF_min = volatilityReport('TTF=F')
+
+    # NGF_TTF_hourly, NGF_TTF_min = volatilityReport('NG=F', 'TTF=F')
+    # print('hello')
+    computecorr('NG=F', 'TTF=F')
+    # merged_df = pd.merge(data_hourly, data_hourly2, left_index=True, right_index=True, suffixes=('_left', '_right'))

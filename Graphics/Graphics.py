@@ -37,3 +37,13 @@ def display_payoff_eu(Option_type, Strike:(list, int), plot=True):
 
     return [ST, payoff]
 
+def correl_plot(df, x_label, y_label, title):
+    df.plot()
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(title)
+    plt.axhline(0, color='black', linewidth=0.5, ls='--')
+    plt.axvline(0, color='black', linewidth=0.5, ls='--')
+    plt.grid(color='gray', linestyle='--', linewidth=0.5)
+    plt.show()
+    return
