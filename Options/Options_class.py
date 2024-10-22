@@ -471,6 +471,64 @@ class Option_eu:
                               zaxis_title='Option Theta'
                           ))
         fig.show()
+    def Volga_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
+        delta_vol = 0.001
+        option_delta_vol_plus = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+                                     self.sigma + delta_vol).Vega_DF()
+        option_option_minus = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+                                  self.sigma - delta_vol).Vega_DF()
+        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+                                  self.sigma).Vega_DF()
+
+        volga = ((option_delta_vol_plus + option_option_minus - 2 * option_option) / delta_vol ** 2)
+        return volga
+    def VolgaRisk(self, show=True):
+        Volga_Option = self.Volga_DF()
+        if self.asset.St > 10:
+            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
+        asset_st = self.asset.St
+        list_volga = list()
+        for st in range_st:
+            self.asset.St = st
+            list_volga.append(self.Volga_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_volga, label=f'Volga vs Range | Strike ={self.K}', color='blue',  linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Volga_Option, 'x', label=f'Option Volga at Specific Points | Strike ={self.K}',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        plt.title('Volga of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Volga')
+        plt.legend()
+        plt.grid(True)
+        if show:
+            plt.show()
+        return
+    def Vega_convexity(self, show=True):
+        Vega_Option = self.Vega_DF()
+
+        range_vol = [x / 100 for x in range(1, 100)]
+        implied_vol = self.sigma
+        list_vega = list()
+        for vol in range_vol:
+            self.sigma = vol
+            list_vega.append(self.Vega_DF())
+        self.sigma = implied_vol
+        plt.plot(range_vol, list_vega, label='Vega vs Implied Volatility (IV)', color='blue', linestyle='-', linewidth=2)
+        plt.plot(self.sigma, Vega_Option, 'x', label='Option Vega at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        # Adding titles and labels
+        plt.title('Vega of the Option vs. Implied Volatility (IV)')
+        plt.xlabel('Implied Volatility (IV)')
+        plt.ylabel('Option Vega')
+        plt.legend()
+        plt.grid(True)
+        if show:
+            plt.show()
+        return
     def simu_asset(self, time):
         self.asset.simu_asset(time)
         #self.asset.St = self.asset.history[-1]

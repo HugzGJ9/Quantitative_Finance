@@ -11,7 +11,8 @@ from Volatility.Volatility import volatilityReport
 import yfinance as yf
 from Logger import Logger
 booking_logg = Logger.LOGGER()
-
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class Booking_Request():
     def __init__(self, Book:Book_class.Book=None, Option:Options_class.Option_eu=None,
@@ -82,11 +83,11 @@ def run_Mtm(VI, LS, book_name=None):
         return
     else:
         asset_ticker = df['asset'].unique()[0]
-    ng2_ticker = asset_ticker  # The continuous contract for Natural Gas
+    ng2_ticker = asset_ticker
     try:
         ng2_data = yf.Ticker(ng2_ticker)
-        trend_details = ng2_data.trend_details()
-    except YFNotImplementedError as e:
+        ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
+    except IndexError as e:
         booking_logg.logger.critical(f"Error: {e}. Ticker used not found.")
         booking_logg.logger.critical(f"End Mark to Market.")
         return
@@ -94,7 +95,6 @@ def run_Mtm(VI, LS, book_name=None):
         booking_logg.logger.critical(f"An unexpected error occurred: {e}")
         booking_logg.logger.critical(f"End Mark to Market.")
         return
-    ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
     list_of_positions = []
     asset = Asset_class.asset_BS(ng2_price, 0, ng2_ticker)
     for i in range(len(df)):
@@ -135,6 +135,10 @@ def run_Mtm(VI, LS, book_name=None):
                         'vega': book.Vega_DF(), 'theta': book.Theta_DF()}
     with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
         MtM.to_excel(writer, sheet_name='MtM', index=False)
+        booking_logg.logger.debug(f"Booking file updated.")
+
+    booking_logg.logger.info("\n%s", MtM.to_string())
+    booking_logg.logger.debug(f"End Mark to Market.")
     return
 
 
