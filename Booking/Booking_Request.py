@@ -1,29 +1,102 @@
 import numpy as np
 import pandas as pd
 import datetime
+
+from yfinance.exceptions import YFNotImplementedError
+
 from Options import Book_class
 from Options import Options_class
 from Asset_Modeling import Asset_class
 from Volatility.Volatility import volatilityReport
 import yfinance as yf
+from Logger import Logger
+booking_logg = Logger.LOGGER()
+
+
 class Booking_Request():
     def __init__(self, Book:Book_class.Book=None, Option:Options_class.Option_eu=None,
                  Asset:Asset_class.asset_BS=None):
         self.tobebooked = Book if Book is not None else (
             Option if Option is not None else (Asset if Asset is not None else None))
-    def run_Booking(self, lot_size:int=None):
-        self.tobebooked.run_Booking(lot_size)
+        self.loggerinit()
+    def run_Booking(self, lot_size:int=None, book_name:str=None):
+        booking_logg.logger.debug(f'Booking initalisation.')
+        if lot_size is None:
+            booking_logg.logger.warning('Lot size not set!')
+            booking_logg.logger.debug('Please enter lot size value :')
+            lot_size = input()
+            booking_logg.logger.debug('Lot size now set.')
+            booking_logg.logger.info(f'{lot_size=}')
+        else:
+            booking_logg.logger.info(f'{lot_size=}')
+
+        if book_name is None:
+            booking_logg.logger.warning('Book name not set!')
+            booking_logg.logger.debug('Please enter book name :')
+            book_name = input()
+            booking_logg.logger.debug('Book name now set.')
+            booking_logg.logger.info(f'{book_name=}')
+
+        else:
+            booking_logg.logger.info(f'{book_name=}')
+
+        booked = self.tobebooked.run_Booking(lot_size, book_name)
+        booking_logg.logger.info(f'{booked}')
+        booking_logg.logger.debug(f'Booking ended.')
+        return
+    def loggerinit(self):
+        booking_logg.logger.debug(f'Booking request initalisation.')
+        attribute_dict = self.tobebooked.__dict__
+        booking_logg.logger.info(f"Booking request type : {attribute_dict['type']}")
+        booking_logg.logger.info(f"Booking request position : {attribute_dict['position']}")
+        booking_logg.logger.info(f"Booking request Underlying price : {attribute_dict['asset'].St}")
+        booking_logg.logger.info(f"Booking request strike : {attribute_dict['K']}")
+        booking_logg.logger.info(f"Booking request maturity : {attribute_dict['T'] * 365}")
+        booking_logg.logger.info(f"Booking request rate : {attribute_dict['r']}")
+        booking_logg.logger.info(f"Booking request implied volatily : {attribute_dict['sigma']}")
+        booking_logg.logger.info(f"Booking request barrier : {attribute_dict['barrier']}")
         return
 
-def run_Mtm(VI, LS):
-    booking_file_path = 'Booking_history.xlsx'
+def run_Mtm(VI, LS, book_name=None):
+    booking_logg.logger.debug(f'Start Mark to Market.')
+
+    if book_name is None:
+        booking_logg.logger.warning('book name not set!')
+        booking_logg.logger.debug('Please enter book name :')
+        book_name = input()
+        booking_logg.logger.debug('Book name now set.')
+        booking_logg.logger.info(f'{book_name=}')
+    else:
+        booking_logg.logger.info(f'{book_name=}')
+
+    booking_logg.logger.info(f"Implied volatily = {VI}.xlsx")
+    booking_logg.logger.info(f"Lot size = {LS}.xlsx")
+
+    booking_file_path = f"Booking/{book_name}.xlsx"
+
     booking_file_sheet_name = 'histo_order'
-    ng2_ticker = "NG=F"  # The continuous contract for Natural Gas
-    ng2_data = yf.Ticker(ng2_ticker)
+
+    df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+    if not len(df['asset'].unique()) == 1:
+        booking_logg.logger.critical('Multiple assets within the book.')
+        return
+    else:
+        asset_ticker = df['asset'].unique()[0]
+    ng2_ticker = asset_ticker  # The continuous contract for Natural Gas
+    try:
+        ng2_data = yf.Ticker(ng2_ticker)
+        trend_details = ng2_data.trend_details()
+    except YFNotImplementedError as e:
+        booking_logg.logger.critical(f"Error: {e}. Ticker used not found.")
+        booking_logg.logger.critical(f"End Mark to Market.")
+        return
+    except Exception as e:
+        booking_logg.logger.critical(f"An unexpected error occurred: {e}")
+        booking_logg.logger.critical(f"End Mark to Market.")
+        return
     ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
     list_of_positions = []
-    asset = Asset_class.asset_BS(ng2_price, 0, "HH NG2!")
-    df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+    asset = Asset_class.asset_BS(ng2_price, 0, ng2_ticker)
     for i in range(len(df)):
         position = df.loc[i]
         if position.type == 'asset':
@@ -67,9 +140,10 @@ def run_Mtm(VI, LS):
 
 if __name__ == '__main__':
 
-    # stock = Asset_class.asset_BS(2.624, 0, "HH NG2!")
-    # option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
-    volatilityReport()
+    stock = Asset_class.asset_BS(2.624, 0, "NG=F")
+    option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
+    book_name = "GasCall"
+    # volatilityReport()
     # book = Book_class.Book([option])
     #
 
@@ -84,5 +158,5 @@ if __name__ == '__main__':
     # # # #
     # #
     # booking_request = Booking_Request(option)
-    # booking_request.run_Booking(lot_size=10000)
-    # run_Mtm(VI=0.62, LS=10000)
+    # booking_request.run_Booking(lot_size=10000, book_name=book_name)
+    run_Mtm(VI=0.62, LS=10000, book_name=book_name)

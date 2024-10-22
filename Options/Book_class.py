@@ -6,7 +6,8 @@ import copy
 import plotly.graph_objects as go
 
 class Book(Option_eu):
-    def __init__(self, options_basket:list)->None:
+    def __init__(self, options_basket:list, name:str=None)->None:
+        self.name = name
         self.basket = options_basket
         self.asset = self.basket[0].asset
         # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
@@ -73,7 +74,7 @@ class Book(Option_eu):
         return sum([option.Delta_DF() for option in self.basket]) + hedge
     def Delta_surface(self):
         if self.asset.St > 10:
-            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 0.5)
         else:
             range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
 

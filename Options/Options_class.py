@@ -217,7 +217,7 @@ class Option_eu:
         return tableau_delta
     def Delta_surface(self):
         if self.asset.St > 10:
-            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 0.5)
         else:
             range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
 
@@ -518,19 +518,22 @@ class Option_eu:
         self.VegaRisk()
         self.ThetaRisk()
         return
-    def run_Booking(self, lot_size:int=None): #lot
-        booking_file_path = 'Booking_history.xlsx'
+    def run_Booking(self, lot_size:int=None, book_name:str=None): #lot
+        if book_name:
+            booking_file_path = f"Booking/{book_name}.xlsx"
+        else:
+            booking_file_path = 'Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
-
         df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
         booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
+
         with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
-        return
+        return booking
 
 class Option_prem_gen(Option_eu):
     def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, root=None):
