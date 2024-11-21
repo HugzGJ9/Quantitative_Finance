@@ -4,7 +4,7 @@ from Graphics.Graphics import plot_2d
 from Options.Options_class import  Option_eu, Option_prem_gen
 import copy
 import plotly.graph_objects as go
-
+from Logger.Logger import mylogger
 class Book(Option_eu):
     def __init__(self, options_basket:list, name:str=None)->None:
         self.name = name
@@ -12,6 +12,7 @@ class Book(Option_eu):
         self.asset = self.basket[0].asset
         # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
         self.book_old = None
+        mylogger.logger.info(f"Book has been intiated : Basket of options= {options_basket}")
         return
     def append(self, option:(Option_eu, Option_prem_gen))->None:
         self.basket.append(option)
@@ -202,6 +203,45 @@ class Book(Option_eu):
                               zaxis_title='Option Theta'
                           ))
         fig.show()
+
+    def Vanna_DF(self):
+        return sum([option.Vega_DF() for option in self.basket])
+
+    def Vanna_surface(self):
+        if self.asset.St > 10:
+            range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 2)]
+
+        asset_st = self.asset.St
+        option_matu = [option.T for option in self.basket]
+        list_vanna = []
+
+        range_t = [t / (365 * 100) for t in range(0, round(min(option_matu) * 100 * 365), 2)]
+
+        for t in range_t:
+            for option in self.basket:
+                option.T = min(option_matu) - t
+            for st in range_st:
+                self.asset.St = st
+                list_vanna.append(self.Vanna_DF())
+
+        self.asset.St = asset_st
+        for option, matu in zip(self.basket, option_matu):
+            option.T = matu
+        range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
+        list_vanna = np.array(list_vanna).reshape(len(range_t), len(range_st))
+        fig = go.Figure(data=[go.Surface(z=list_vanna, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
+        fig.update_layout(title='Vanna of the Option vs. Underlying Asset Price and Time',
+                          scene=dict(
+                              xaxis_title='Underlying Asset Price (St)',
+                              yaxis_title='Time to Maturity (T, days)',
+                              zaxis_title='Option Vanna'
+                          ))
+        fig.show()
+
+    def Volga_DF(self):
+        return sum([option.Volga_DF() for option in self.basket])
     def simu_asset(self, time):
         self.book_old = copy.deepcopy(self)
         list_asset = list(set([x.asset for x in self.basket]))

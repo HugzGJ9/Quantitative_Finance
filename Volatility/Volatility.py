@@ -28,7 +28,7 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, i
             options = options.puts
         options_df = options[['lastTradeDate', 'strike', 'lastPrice', 'impliedVolatility']]
     else:
-        options_df = pd.read_excel('Crypto/BTCUSD.xlsx')
+        options_df = pd.read_excel('API/BTCUSD.xlsx')
         options_df['matu'] = options_df['strike'].apply(keep_before_dash)
         options_df = options_df[options_df['matu'] == pd.Timestamp(maturity_date)]
         options_df['strike'] = options_df['strike'].apply(keep_after_dash)

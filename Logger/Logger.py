@@ -3,16 +3,15 @@ from colorama import Fore, Style, init
 
 # Initialize colorama for Windows compatibility (optional on Unix-based systems)
 init(autoreset=True)
-
 # Custom formatter class to add colors based on log levels
 class ColoredFormatter(logging.Formatter):
     # Define colors for each log level
     COLORS = {
-        logging.DEBUG: Fore.GREEN + Style.BRIGHT,  # Debug (allow access) in green
-        logging.INFO: Fore.BLUE + Style.BRIGHT,    # Info in blue
-        logging.WARNING: Fore.YELLOW + Style.BRIGHT, # Warning in orange (yellow)
-        logging.ERROR: Fore.RED,    # Error in red
-        logging.CRITICAL: Fore.RED + Style.BRIGHT  # Critical in bright red
+        logging.DEBUG: Fore.BLUE + Style.BRIGHT,
+        logging.INFO: Fore.GREEN + Style.BRIGHT,
+        logging.WARNING: Fore.YELLOW + Style.BRIGHT,
+        logging.ERROR: Fore.RED,
+        logging.CRITICAL: Fore.RED + Style.BRIGHT
     }
 
     def format(self, record):
@@ -46,7 +45,7 @@ class LOGGER():
         self.logger.warning('This is a warning message')  # Yellow/Orange
         self.logger.error('This is an error message')  # Red
         self.logger.critical('This is a critical message')  # Bright Red
-
+mylogger = LOGGER()
 if __name__ == '__main__':
     new_logger = LOGGER()
     new_logger.display_test()

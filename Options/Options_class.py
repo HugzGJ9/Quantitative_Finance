@@ -7,12 +7,11 @@ from Asset_Modeling.Asset_class import asset_BS
 from  Asset_Modeling.Actif_stoch_BS import simu_actif
 import tkinter as tk
 from tkinter import ttk
-
 from Graphics.Graphics import plot_2d
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, payoff_call_eu_barrier
 import plotly.graph_objects as go
-
+from Logger.Logger import mylogger
 class Option_eu:
     #root parameter to
     def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
@@ -25,6 +24,7 @@ class Option_eu:
         self.r = r
         self.sigma = sigma
         self.barrier = barrier
+        mylogger.logger.info(f"Option has been intiated : {type=} - {position=} maturity={T*365}days - strike={K}")
         if root!= None:
             self.root = root
             self.root.title("European Option Pricing")
@@ -473,19 +473,17 @@ class Option_eu:
         fig.show()
     def Volga_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
         delta_vol = 0.001
-        option_delta_vol_plus = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+        option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                      self.sigma + delta_vol).Vega_DF()
-        option_option_minus = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                  self.sigma - delta_vol).Vega_DF()
         option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                   self.sigma).Vega_DF()
 
-        volga = ((option_delta_vol_plus + option_option_minus - 2 * option_option) / delta_vol ** 2)
+        volga = (option_delta_vol - option_option) / delta_vol
         return volga
     def VolgaRisk(self, show=True):
         Volga_Option = self.Volga_DF()
         if self.asset.St > 10:
-            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 2.5), 2)
         else:
             range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
         asset_st = self.asset.St
@@ -494,13 +492,48 @@ class Option_eu:
             self.asset.St = st
             list_volga.append(self.Volga_DF())
         self.asset.St = asset_st
-        plt.plot(range_st, list_volga, label=f'Volga vs Range | Strike ={self.K}', color='blue',  linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Volga_Option, 'x', label=f'Option Volga at Specific Points | Strike ={self.K}',
+        plt.plot(range_st, list_volga, label=f'Volga vs Range', color='blue',  linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Volga_Option, 'x', label=f'Option Volga at Specific Points',
                  color='red', markersize=10, markeredgewidth=2)
 
         plt.title('Volga of the Option vs. Underlying Asset Price')
         plt.xlabel('Underlying Asset Price (St)')
         plt.ylabel('Option Volga')
+        plt.legend()
+        plt.grid(True)
+        if show:
+            plt.show()
+        return
+    def Vanna_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
+        delta_St = 0.00001
+        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
+        option_delta_vol = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r,
+                                     self.sigma).Vega_DF()
+        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+                                  self.sigma).Vega_DF()
+        
+        vanna = (option_delta_vol - option_option) / delta_St
+        return vanna
+    
+    def VannaRisk(self, show=True):
+        Vanna_Option = self.Vanna_DF()
+        if self.asset.St > 10:
+            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 2.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
+        asset_st = self.asset.St
+        list_vanna = list()
+        for st in range_st:
+            self.asset.St = st
+            list_vanna.append(self.Vanna_DF())
+        self.asset.St = asset_st
+        plt.plot(range_st, list_vanna, label=f'Vanna vs Range', color='blue',  linestyle='-', linewidth=2)
+        plt.plot(self.asset.St, Vanna_Option, 'x', label=f'Option Vanna at Specific Points',
+                 color='red', markersize=10, markeredgewidth=2)
+
+        plt.title('Vanna of the Option vs. Underlying Asset Price')
+        plt.xlabel('Underlying Asset Price (St)')
+        plt.ylabel('Option Vanna')
         plt.legend()
         plt.grid(True)
         if show:

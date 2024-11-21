@@ -2,6 +2,7 @@ from Asset_Modeling.Actif_stoch_BS import simu_actif
 from Graphics.Graphics import plot_2d
 import pandas as pd
 import datetime
+from Logger.Logger import mylogger
 class asset_BS():
     def __init__(self, S0, quantity, name=None, mu=None, sigma = None):
         self.S0 = S0
@@ -12,6 +13,8 @@ class asset_BS():
         self.mu = mu if mu is not None else 0.1
         self.sigma = sigma if sigma is not None else 0.1
         self.t = 0
+        mylogger.logger.info(f"Asset has been intiated")
+
     def simu_asset(self, T)->None:
         St = simu_actif(self.St, self.t, T, self.mu, self.sigma)
         St.pop(0)
