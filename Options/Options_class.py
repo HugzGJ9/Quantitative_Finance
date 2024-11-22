@@ -12,9 +12,11 @@ from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, pa
     close_formulae_put_eu, payoff_call_eu_barrier
 import plotly.graph_objects as go
 from Logger.Logger import mylogger
+from scipy.interpolate import RegularGridInterpolator
+
 class Option_eu:
     #root parameter to
-    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma=None, volatility_surface_df=None, use_vol_surface=False, barrier=None, root=None, logger= False):
         self.position = position
         self.asset = asset
         self.type = type
@@ -22,61 +24,55 @@ class Option_eu:
         self.t = (len(self.asset.history)-1)/(365*24)
         self.T = T
         self.r = r
-        self.sigma = sigma
         self.barrier = barrier
-        mylogger.logger.info(f"Option has been intiated : {type=} - {position=} maturity={T*365}days - strike={K}")
-        if root!= None:
-            self.root = root
-            self.root.title("European Option Pricing")
-            self.root.geometry("400x400")
+        self.sigma = sigma  # Constant volatility
+        self.volatility_surface_df = volatility_surface_df  # Volatility surface as DataFrame
+        self.use_vol_surface = use_vol_surface  # Flag to switch between constant sigma and surface
+        self.volatility_interpolator = None
 
-            self.style = ttk.Style(self.root)
-            self.style.theme_use("plastik")
+        if self.use_vol_surface and self.volatility_surface_df is not None:
+            self._prepare_volatility_surface()
 
-            self.frame = ttk.Frame(root)
-            self.frame.pack(pady=20, padx=20)
+        if logger:
+            mylogger.logger.info(
+                f"Option initialized: {type=} - {position=} maturity={T * 365}days - strike={K}"
+            )
 
-            self.label = ttk.Label(self.frame, text="European Option Pricing", font=("Helvetica", 16))
-            self.label.grid(row=0, column=0, columnspan=2, pady=10)
+    def _prepare_volatility_surface(self):
+        """Prepare the interpolator for the volatility surface."""
+        # Replace "ATM" in moneyness with 0 and ensure numeric types
+        self.volatility_surface_df['Moneyness'] = self.volatility_surface_df['Moneyness'].replace("ATM", 0).astype(
+            float)
 
-            self.option_type_label = ttk.Label(self.frame, text="Option Type:")
-            self.option_type_label.grid(row=1, column=0, sticky="w")
+        # Extract axes and values for interpolation
+        self.moneyness = self.volatility_surface_df['Moneyness'].to_numpy()
+        self.maturities = np.array(
+            [1 / 365, 7 / 365, 30 / 365, 90 / 365, 180 / 365, 365 / 365])  # Day, week, month, etc.
+        self.vol_data = self.volatility_surface_df.iloc[:, 1:].to_numpy()
 
-            self.option_type_var = tk.StringVar()
-            self.option_type_combobox = ttk.Combobox(self.frame, textvariable=self.option_type_var, values=["Call EU", "Put EU", "Call Asian", "Put Asian"])
-            self.option_type_combobox.grid(row=1, column=1, pady=5)
+        # Create interpolator
+        self.volatility_interpolator = RegularGridInterpolator(
+            (self.moneyness, self.maturities), self.vol_data, bounds_error=False, fill_value=None
+        )
 
-            self.asset.St_label = ttk.Label(self.frame, text="Current Stock Price:")
-            self.asset.St_label.grid(row=2, column=0, sticky="w")
+    def get_sigma(self, St, T):
+        """Fetch volatility dynamically from the surface or use constant sigma."""
+        if self.use_vol_surface:
+            moneyness = (St / self.K - 1) * 100  # Calculate moneyness as percentage
+            return self.volatility_interpolator((moneyness, T))/100
+        elif self.sigma is not None:
+            return self.sigma
+        else:
+            raise ValueError("Either constant sigma or volatility surface must be defined.")
 
-            self.asset.St_entry = ttk.Entry(self.frame)
-            self.asset.St_entry.grid(row=2, column=1, pady=5)
-
-            self.K_label = ttk.Label(self.frame, text="Strike Price:")
-            self.K_label.grid(row=3, column=0, sticky="w")
-
-            self.K_entry = ttk.Entry(self.frame)
-            self.K_entry.grid(row=3, column=1, pady=5)
-
-            self.T_label = ttk.Label(self.frame, text="Time to Maturity (T):")
-            self.T_label.grid(row=4, column=0, sticky="w")
-
-            self.T_entry = ttk.Entry(self.frame)
-            self.T_entry.grid(row=4, column=1, pady=5)
-
-            self.sigma_label = ttk.Label(self.frame, text="Volatility (sigma):")
-            self.sigma_label.grid(row=5, column=0, sticky="w")
-
-            self.sigma_entry = ttk.Entry(self.frame)
-            self.sigma_entry.grid(row=5, column=1, pady=5)
-
-            self.calculate_button = ttk.Button(self.frame, text="Calculate Option Price",
-                                               command=self.option_price_close_formulae)
-            self.calculate_button.grid(row=6, column=0, columnspan=2, pady=10)
-
-            self.result_label = ttk.Label(self.frame, text="", font=("Helvetica", 14))
-            self.result_label.grid(row=7, column=0, columnspan=2, pady=10)
-
+    def option_price_close_formulae(self):
+        sigma = self.get_sigma(self.asset.St, self.T)
+        if self.type == "Call EU":
+            option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
+            return self.position * option_price
+        elif self.type == "Put EU":
+            option_price = close_formulae_put_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
+            return self.position * option_price
     def update_t(self, days):
         self.t = days/365
         return
@@ -98,18 +94,15 @@ class Option_eu:
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
         plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
+
     def option_price_close_formulae(self):
+        sigma = self.get_sigma(self.asset.St, self.T)
         if self.type == "Call EU":
-            option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
-            return self.position*option_price
+            option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
+            return self.position * option_price
         elif self.type == "Put EU":
-            option_price = close_formulae_put_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
-            return self.position*option_price
-        # elif self.type == "Call Spread":
-        #     long_call = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, self.sigma)
-        #     short_call = close_formulae_call_eu(self.asset.St, self.K_2, self.t, self.T, self.r, self.sigma)
-        #     option_price = long_call - short_call
-        #     return option_price
+            option_price = close_formulae_put_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
+            return self.position * option_price
     def option_price_mc(self, Nmc=1000):
         prix_option = 0
         for i in range(Nmc):
@@ -182,7 +175,9 @@ class Option_eu:
 
         delta = (option_delta_St - option_option)/delta_St
         return delta
-    def DeltaRisk(self):
+    def DeltaRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Delta Risk.")
         Delta_Option = self.Delta_DF()
         if self.asset.St>10:
             range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
@@ -214,6 +209,8 @@ class Option_eu:
         tableau_delta = pd.DataFrame(zip(range_st, list_delta), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_delta.index = tableau_delta['Underlying Asset Price (St) move']
         tableau_delta = tableau_delta['gains']
+        if logger:
+            mylogger.logger.info("Delta Risk done. SUCCESS.")
         return tableau_delta
     def Delta_surface(self):
         if self.asset.St > 10:
@@ -268,9 +265,10 @@ class Option_eu:
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
 
-    def GammaRisk(self):
+    def GammaRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Gamma Risk.")
         Gamma_Option = self.Gamma_DF()
-
         if self.asset.St>10:
             range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
         else:
@@ -298,6 +296,8 @@ class Option_eu:
 
         # Displaying the plot
         plt.show()
+        if logger:
+            mylogger.logger.info("Gamma Risk done. SUCCESS.")
         return
 
     def Gamma_surface(self):
@@ -341,7 +341,9 @@ class Option_eu:
         vega = (option_delta_vol - option_option) / delta_vol
         return vega/100
 
-    def VegaRisk(self):
+    def VegaRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Vega Risk.")
         Vega_Option = self.Vega_DF()
         if self.asset.St>10:
             range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
@@ -370,6 +372,8 @@ class Option_eu:
 
         # Displaying the plot
         plt.show()
+        if logger:
+            mylogger.logger.info("Vega Risk done. SUCCESS.")
         return
     def Vega_surface(self):
 
@@ -409,7 +413,9 @@ class Option_eu:
 
         theta = (option_delta_t - option_option) / delta_t
         return theta/365
-    def ThetaRisk(self):
+    def ThetaRisk(self, logger=False ):
+        if logger:
+            mylogger.logger.info("Start Theta Risk.")
         Theta_Option = self.Theta_DF()
         if self.asset.St>10:
             range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
@@ -438,6 +444,8 @@ class Option_eu:
 
         # Displaying the plot
         plt.show()
+        if logger:
+            mylogger.logger.info("Theta Risk done. SUCCESS.")
         return
 
     def Theta_surface(self):
@@ -541,7 +549,6 @@ class Option_eu:
         return
     def Vega_convexity(self, show=True):
         Vega_Option = self.Vega_DF()
-
         range_vol = [x / 100 for x in range(1, 100)]
         implied_vol = self.sigma
         list_vega = list()
@@ -603,11 +610,15 @@ class Option_eu:
         tableau_gains.index = tableau_gains['Underlying Asset Price (St) move']
         tableau_gains = tableau_gains['gains']
         return tableau_gains
-    def RiskAnalysis(self):
-        self.DeltaRisk()
-        self.GammaRisk()
-        self.VegaRisk()
-        self.ThetaRisk()
+    def RiskAnalysis(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Risk Analysis.")
+        self.DeltaRisk(logger=logger)
+        self.GammaRisk(logger=logger)
+        self.VegaRisk(logger=logger)
+        self.ThetaRisk(logger=logger)
+        if logger:
+            mylogger.logger.info("Risk Analysis done. SUCCESS.")
         return
     def run_Booking(self, lot_size:int=None, book_name:str=None): #lot
         if book_name:

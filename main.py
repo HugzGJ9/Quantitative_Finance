@@ -10,8 +10,8 @@ from Logger.Logger import mylogger
 if __name__ == '__main__':
 
     stock1 = asset_BS(100, 0)
-
     option1 = Option_eu(-1, 'Put EU', stock1, 99, 10 / 365, 0.02, 0.50)
     option2 = Option_eu(1, 'Put EU', stock1, 101, 10 / 365, 0.02, 0.50)
     book1 = Book([option1, option2])
     mylogger.logger.info(f"Book value = {book1.option_price_close_formulae()}")
+    book1.RiskAnalysis()

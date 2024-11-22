@@ -6,13 +6,14 @@ import copy
 import plotly.graph_objects as go
 from Logger.Logger import mylogger
 class Book(Option_eu):
-    def __init__(self, options_basket:list, name:str=None)->None:
+    def __init__(self, options_basket:list, name:str=None, logger=False)->None:
         self.name = name
         self.basket = options_basket
         self.asset = self.basket[0].asset
         # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
         self.book_old = None
-        mylogger.logger.info(f"Book has been intiated : Basket of options= {options_basket}")
+        if logger:
+            mylogger.logger.info(f"Book has been intiated : Basket of options= {options_basket}")
         return
     def append(self, option:(Option_eu, Option_prem_gen))->None:
         self.basket.append(option)
