@@ -5,9 +5,7 @@ from matplotlib import pyplot as plt
 
 from Asset_Modeling.Asset_class import asset_BS
 from  Asset_Modeling.Actif_stoch_BS import simu_actif
-import tkinter as tk
-from tkinter import ttk
-from Graphics.Graphics import plot_2d
+from Graphics.Graphics import plot_2d, plotGreek
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, payoff_call_eu_barrier
 import plotly.graph_objects as go
@@ -16,7 +14,7 @@ from scipy.interpolate import RegularGridInterpolator
 
 class Option_eu:
     #root parameter to
-    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma=None, volatility_surface_df=None, use_vol_surface=False, barrier=None, root=None, logger= False):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma=None, volatility_surface_df=None, use_vol_surface=False, barrier=None, logger= False):
         self.position = position
         self.asset = asset
         self.type = type
@@ -25,32 +23,26 @@ class Option_eu:
         self.T = T
         self.r = r
         self.barrier = barrier
-        self.sigma = sigma  # Constant volatility
-        self.volatility_surface_df = volatility_surface_df  # Volatility surface as DataFrame
-        self.use_vol_surface = use_vol_surface  # Flag to switch between constant sigma and surface
+        self.sigma = sigma
+        self.volatility_surface_df = volatility_surface_df
+        self.use_vol_surface = use_vol_surface
         self.volatility_interpolator = None
 
         if self.use_vol_surface and self.volatility_surface_df is not None:
-            self._prepare_volatility_surface()
+            self.set_volatility_surface()
 
         if logger:
             mylogger.logger.info(
-                f"Option initialized: {type=} - {position=} maturity={T * 365}days - strike={K}"
+                f"Option initialized: {type=} - {position=} - maturity={T * 365}days - strike={K}"
             )
 
-    def _prepare_volatility_surface(self):
-        """Prepare the interpolator for the volatility surface."""
-        # Replace "ATM" in moneyness with 0 and ensure numeric types
+    def set_volatility_surface(self):
         self.volatility_surface_df['Moneyness'] = self.volatility_surface_df['Moneyness'].replace("ATM", 0).astype(
             float)
-
-        # Extract axes and values for interpolation
         self.moneyness = self.volatility_surface_df['Moneyness'].to_numpy()
         self.maturities = np.array(
-            [1 / 365, 7 / 365, 30 / 365, 90 / 365, 180 / 365, 365 / 365])  # Day, week, month, etc.
+            [1 / 365, 7 / 365, 30 / 365, 90 / 365, 180 / 365, 365 / 365])
         self.vol_data = self.volatility_surface_df.iloc[:, 1:].to_numpy()
-
-        # Create interpolator
         self.volatility_interpolator = RegularGridInterpolator(
             (self.moneyness, self.maturities), self.vol_data, bounds_error=False, fill_value=None
         )
@@ -58,8 +50,8 @@ class Option_eu:
     def get_sigma(self, St, T):
         """Fetch volatility dynamically from the surface or use constant sigma."""
         if self.use_vol_surface:
-            moneyness = (St / self.K - 1) * 100  # Calculate moneyness as percentage
-            return self.volatility_interpolator((moneyness, T))/100
+            moneyness = (St / self.K - 1)
+            return round(float(self.volatility_interpolator((moneyness, T))), 4)
         elif self.sigma is not None:
             return self.sigma
         else:
@@ -95,18 +87,11 @@ class Option_eu:
             payoffs.append(self.get_payoff_option(i))
         plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
 
-    def option_price_close_formulae(self):
-        sigma = self.get_sigma(self.asset.St, self.T)
-        if self.type == "Call EU":
-            option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
-            return self.position * option_price
-        elif self.type == "Put EU":
-            option_price = close_formulae_put_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
-            return self.position * option_price
+
     def option_price_mc(self, Nmc=1000):
         prix_option = 0
         for i in range(Nmc):
-            prix_actif = simu_actif(self.asset.St, self.t, self.T, self.r, self.sigma)
+            prix_actif = simu_actif(self.asset.St, self.t, self.T, self.r, self.get_sigma(self.asset.St, self.T))
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
             elif self.type == "Put EU":
@@ -168,50 +153,53 @@ class Option_eu:
         return option_values[0]
 
     def Delta_DF(self):
-        delta_St = 0.00001
-        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        option_delta_St = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
-
+        delta_St = 0.0001
+        self.asset.St = self.asset.St + delta_St
+        option_delta_St = self.option_price_close_formulae()
+        self.asset.St = self.asset.St - delta_St
+        option_option = self.option_price_close_formulae()
         delta = (option_delta_St - option_option)/delta_St
         return delta
     def DeltaRisk(self, logger=False):
         if logger:
             mylogger.logger.info("Start Delta Risk.")
-        Delta_Option = self.Delta_DF()
-        if self.asset.St>10:
-            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
-        else:
-            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
-        asset_st = self.asset.St
-        list_delta = list()
-        for st in range_st:
-            self.asset.St = st
-            list_delta.append(self.Delta_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_delta, label='Delta vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Delta_Option, 'x', label='Option Delta at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        # Adding titles and labels
-        plt.title('Delta of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Delta')
-
-        # Adding a legend
-        plt.legend()
-
-        # Adding grid for better readability
-        plt.grid(True)
-
-        # Displaying the plot
-        plt.show()
+        Delta_Option, list_delta, range_st = self.computeGreekCurve("Delta")
+        plotGreek(self.asset.St, Delta_Option, list_delta, range_st, 'Delta')
         tableau_delta = pd.DataFrame(zip(range_st, list_delta), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_delta.index = tableau_delta['Underlying Asset Price (St) move']
         tableau_delta = tableau_delta['gains']
         if logger:
             mylogger.logger.info("Delta Risk done. SUCCESS.")
         return tableau_delta
+
+    def computeGreekCurve(self, greek):
+        if greek == "Delta":
+            Greek_DF = self.Delta_DF
+        elif greek == "Gamma":
+            Greek_DF = self.Gamma_DF
+        elif greek == "Vega":
+            Greek_DF = self.Vega_DF
+        elif greek == "Theta":
+            Greek_DF = self.Theta_DF
+        elif greek == "Vanna":
+            Greek_DF = self.Vanna_DF
+        elif greek == "Volga":
+            Greek_DF = self.Volga_DF
+        else:
+            raise ValueError(f"Invalid Greek specified: {greek}")
+        Greek_Option = Greek_DF()
+        if self.asset.St > 10:
+            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+        else:
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
+        asset_st = self.asset.St
+        list_delta = list()
+        for st in range_st:
+            self.asset.St = st
+            list_delta.append(Greek_DF())
+        self.asset.St = asset_st
+        return Greek_Option, list_delta, range_st
+
     def Delta_surface(self):
         if self.asset.St > 10:
             range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 0.5)
@@ -235,14 +223,6 @@ class Option_eu:
 
         range_st_mesh, range_t_mesh = np.meshgrid(range_st, range_t)
         list_delta = np.array(list_delta).reshape(len(range_t), len(range_st))
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111, projection='3d')
-        # ax.plot_surface(range_st_mesh, range_t_mesh*365, list_delta, cmap='magma')
-        # ax.set_title('Delta of the Option vs. Underlying Asset Price and Time')
-        # ax.set_xlabel('Underlying Asset Price (St)')
-        # ax.set_ylabel('Time to Maturity (T)')
-        # ax.set_zlabel('Option Delta')
-        # plt.show()
 
         fig = go.Figure(data=[go.Surface(z=list_delta, x=range_st_mesh, y=range_t_mesh * 365, colorscale='magma')])
         fig.update_layout(title='Delta of the Option vs. Underlying Asset Price and Time',
@@ -253,49 +233,23 @@ class Option_eu:
                           ))
         fig.show()
     def Gamma_DF(self):
-        delta_St = 0.00001
-        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        asset_delta_neg = asset_BS(self.asset.St - delta_St, self.asset.quantity)
-        option_gamma_plus = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r,
-                                      self.sigma).option_price_close_formulae()
-        option_gamma_minus = Option_eu(self.position, self.type, asset_delta_neg, self.K, self.T, self.r,
-                                       self.sigma).option_price_close_formulae()
-        option_option = Option_eu(self.position, self.type,self.asset, self.K, self.T, self.r, self.sigma).option_price_close_formulae()
-
+        delta_St = 0.0001
+        original_St = self.asset.St
+        self.asset.St = original_St + delta_St
+        option_gamma_plus = self.option_price_close_formulae()
+        self.asset.St = original_St - delta_St
+        option_gamma_minus = self.option_price_close_formulae()
+        self.asset.St = original_St
+        option_option = self.option_price_close_formulae()
+        self.asset.St = original_St
         gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
         return gamma
 
     def GammaRisk(self, logger=False):
         if logger:
             mylogger.logger.info("Start Gamma Risk.")
-        Gamma_Option = self.Gamma_DF()
-        if self.asset.St>10:
-            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
-        else:
-            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
-        asset_st = self.asset.St
-        list_gamma = list()
-        for st in range_st:
-            self.asset.St = st
-            list_gamma.append(self.Gamma_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_gamma, label='Gamma vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Gamma_Option, 'x', label='Option Gama at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        # Adding titles and labels
-        plt.title('Gamma of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Gamma')
-
-        # Adding a legend
-        plt.legend()
-
-        # Adding grid for better readability
-        plt.grid(True)
-
-        # Displaying the plot
-        plt.show()
+        Gamma_Option, list_gamma, range_st = self.computeGreekCurve('Gamma')
+        plotGreek(self.asset.St, Gamma_Option, list_gamma, range_st, 'Gamma')
         if logger:
             mylogger.logger.info("Gamma Risk done. SUCCESS.")
         return
@@ -332,11 +286,12 @@ class Option_eu:
                           ))
         fig.show()
     def Vega_DF(self):
+        sigma = self.get_sigma(self.asset.St, self.T)
         delta_vol = 0.00001
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                    self.sigma+delta_vol).option_price_close_formulae()
+                                    sigma+delta_vol).option_price_close_formulae()
         option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                  self.sigma).option_price_close_formulae()
+                                  sigma).option_price_close_formulae()
 
         vega = (option_delta_vol - option_option) / delta_vol
         return vega/100
@@ -344,53 +299,23 @@ class Option_eu:
     def VegaRisk(self, logger=False):
         if logger:
             mylogger.logger.info("Start Vega Risk.")
-        Vega_Option = self.Vega_DF()
-        if self.asset.St>10:
-            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
-        else:
-            range_st = [x/100 for x in range(round(self.asset.St*0.5*100), round(self.asset.St*3*100), 2)]
-        asset_st = self.asset.St
-        list_vega = list()
-        for st in range_st:
-            self.asset.St = st
-            list_vega.append(self.Vega_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_vega, label='Vega vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Vega_Option, 'x', label='Option Vega at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        # Adding titles and labels
-        plt.title('Vega of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Vega')
-
-        # Adding a legend
-        plt.legend()
-
-        # Adding grid for better readability
-        plt.grid(True)
-
-        # Displaying the plot
-        plt.show()
+        Vega_Option, list_vega, range_st = self.computeGreekCurve("Vega")
+        plotGreek(self.asset.St, Vega_Option, list_vega, range_st, 'Vega')
         if logger:
             mylogger.logger.info("Vega Risk done. SUCCESS.")
         return
     def Vega_surface(self):
-
-
-        vol_option = self.sigma
         option_matu = self.T
         list_vega = []
-        range_sigma = [sigma / 100 for sigma in range(round(self.sigma * 100*0.5), round(self.sigma * 100*1.5), 2)]
+        sigma = self.get_sigma(self.asset.St, self.T)
+        range_sigma = [sigma / 100 for sigma in range(round(sigma * 100*0.5), round(sigma * 100*1.5), 2)]
         range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
         for t in range_t:
             self.T = option_matu - t
             for sigma_ in range_sigma:
-                self.sigma = sigma_
-                list_vega.append(self.Vega_DF())
-
-        self.sigma = vol_option
+                list_vega.append(Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
+                                  sigma_).Vega_DF())
         self.T = option_matu
 
         range_sigma_mesh, range_t_mesh = np.meshgrid(range_sigma, range_t)
@@ -408,42 +333,14 @@ class Option_eu:
         self.t = self.t+delta_t
         option_delta_t = self.option_price_close_formulae()
         self.t = self.t-delta_t
-
         option_option = self.option_price_close_formulae()
-
         theta = (option_delta_t - option_option) / delta_t
         return theta/365
     def ThetaRisk(self, logger=False ):
         if logger:
             mylogger.logger.info("Start Theta Risk.")
-        Theta_Option = self.Theta_DF()
-        if self.asset.St>10:
-            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
-        else:
-            range_st = [x/100 for x in range(round(self.asset.St*0.1*100), round(self.asset.St*3*100), 2)]
-        asset_st = self.asset.St
-        list_theta = list()
-        for st in range_st:
-            self.asset.St = st
-            list_theta.append(self.Theta_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_theta, label='Theta vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Theta_Option, 'x', label='Option Theta at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        # Adding titles and labels
-        plt.title('Theta of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Theta')
-
-        # Adding a legend
-        plt.legend()
-
-        # Adding grid for better readability
-        plt.grid(True)
-
-        # Displaying the plot
-        plt.show()
+        Theta_Option, list_theta, range_st = self.computeGreekCurve("Theta")
+        plotGreek(self.asset.St, Theta_Option, list_theta, range_st, 'Theta')
         if logger:
             mylogger.logger.info("Theta Risk done. SUCCESS.")
         return
@@ -481,83 +378,47 @@ class Option_eu:
         fig.show()
     def Volga_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
         delta_vol = 0.001
+        sigma = self.get_sigma(self.asset.St, self.T)
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                     self.sigma + delta_vol).Vega_DF()
+                                     sigma + delta_vol).Vega_DF()
         option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                  self.sigma).Vega_DF()
-
+                                  sigma).Vega_DF()
         volga = (option_delta_vol - option_option) / delta_vol
         return volga
-    def VolgaRisk(self, show=True):
-        Volga_Option = self.Volga_DF()
-        if self.asset.St > 10:
-            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 2.5), 2)
-        else:
-            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
-        asset_st = self.asset.St
-        list_volga = list()
-        for st in range_st:
-            self.asset.St = st
-            list_volga.append(self.Volga_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_volga, label=f'Volga vs Range', color='blue',  linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Volga_Option, 'x', label=f'Option Volga at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        plt.title('Volga of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Volga')
-        plt.legend()
-        plt.grid(True)
-        if show:
-            plt.show()
+    def VolgaRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Volga Risk.")
+        Volga_Option, list_volga, range_st = self.computeGreekCurve("Volga")
+        plotGreek(self.asset.St, Volga_Option, list_volga, range_st, 'Volga')
+        if logger:
+            mylogger.logger.info("Theta Risk done. SUCCESS.")
         return
-    def Vanna_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
+    def Vanna_DF(self):
         delta_St = 0.00001
-        asset_delta = asset_BS(self.asset.St + delta_St, self.asset.quantity)
-        option_delta_vol = Option_eu(self.position, self.type, asset_delta, self.K, self.T, self.r,
-                                     self.sigma).Vega_DF()
-        option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                  self.sigma).Vega_DF()
-        
+        self.asset.St = self.asset.St + delta_St
+        option_delta_vol = self.Vega_DF()
+        self.asset.St = self.asset.St - delta_St
+        option_option = self.Vega_DF()
         vanna = (option_delta_vol - option_option) / delta_St
         return vanna
     
-    def VannaRisk(self, show=True):
-        Vanna_Option = self.Vanna_DF()
-        if self.asset.St > 10:
-            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 2.5), 2)
-        else:
-            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
-        asset_st = self.asset.St
-        list_vanna = list()
-        for st in range_st:
-            self.asset.St = st
-            list_vanna.append(self.Vanna_DF())
-        self.asset.St = asset_st
-        plt.plot(range_st, list_vanna, label=f'Vanna vs Range', color='blue',  linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, Vanna_Option, 'x', label=f'Option Vanna at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        plt.title('Vanna of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Vanna')
-        plt.legend()
-        plt.grid(True)
-        if show:
-            plt.show()
+    def VannaRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info('Start Vanna Risk.')
+        Vanna_Option, list_vanna, range_st = self.computeGreekCurve("Vanna")
+        plotGreek(self.asset.St, Vanna_Option, list_vanna, range_st, 'Vanna')
+        if logger:
+            mylogger.logger.info('Vanna Risk done. SUCCESS.')
         return
     def Vega_convexity(self, show=True):
         Vega_Option = self.Vega_DF()
         range_vol = [x / 100 for x in range(1, 100)]
-        implied_vol = self.sigma
+        sigma = self.get_sigma(self.asset.St, self.T)
         list_vega = list()
         for vol in range_vol:
-            self.sigma = vol
-            list_vega.append(self.Vega_DF())
-        self.sigma = implied_vol
+            list_vega.append(Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r, vol).Vega_DF())
         plt.plot(range_vol, list_vega, label='Vega vs Implied Volatility (IV)', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.sigma, Vega_Option, 'x', label='Option Vega at Specific Points',
+        plt.plot(sigma, Vega_Option, 'x', label='Option Vega at Specific Points',
                  color='red', markersize=10, markeredgewidth=2)
 
         # Adding titles and labels
@@ -578,8 +439,10 @@ class Option_eu:
         Price_Option = self.option_price_close_formulae()
         # range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
 
-        if self.asset.St>10:
+        if self.asset.St>1000:
             range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+        elif self.asset.St>10:
+            range_st = range(round(self.asset.St*0.9), round(self.asset.St*1.1), 2)
         else:
             range_st = [x/100 for x in range(round((self.asset.St - 1 ) *100), round((self.asset.St + 1 ) *100), 2)]
 
@@ -617,6 +480,8 @@ class Option_eu:
         self.GammaRisk(logger=logger)
         self.VegaRisk(logger=logger)
         self.ThetaRisk(logger=logger)
+        self.VannaRisk(logger=logger)
+        self.VolgaRisk(logger=logger)
         if logger:
             mylogger.logger.info("Risk Analysis done. SUCCESS.")
         return
@@ -630,7 +495,8 @@ class Option_eu:
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
-        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':self.sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        sigma = self.get_sigma(self.asset.St, self.T)
+        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
 
         with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
@@ -677,11 +543,6 @@ class Option_prem_gen(Option_eu):
             self.options = [self.long_put, self.long_call]
 
 
-    '''def option_price_close_formulae(self):
-        if self.type == "Call Spread":
-            Call1_price = self.long_call.option_price_close_formulae()
-            Call2_price = self.short_call.option_price_close_formulae()
-            return (Call1_price - Call2_price)'''
     def update_t(self, days):
         #self.t = days / 365
         for option in self.options:
@@ -793,7 +654,7 @@ def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
     plt.show()
 
 class Option_ame:
-    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, barrier=None, root=None):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma):
         self.position = position
         self.asset = asset
         self.type = type
@@ -882,8 +743,5 @@ if __name__ == '__main__':
     # optionEU = Option_eu(1, 'Call EU', stock1, 100, 10/365, 0.05, 0.2)
     # price1 = optionEU.option_price_binomial_tree()
     optionUS = Option_ame(1, 'Put US', stock1, 100, 25/365, 0.05, 0.5)
-    # price2 = optionUS.option_price_binomial_tree()
+    optionUS.option_price_binomial_tree()
     optionUS.option_price_lsmc()
-    # price2 = optionEU.option_price_mc()
-    # price3 = optionEU.option_price_close_formulae()
-    print('etst')

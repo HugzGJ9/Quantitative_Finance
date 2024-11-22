@@ -19,12 +19,16 @@ class Book(Option_eu):
         self.basket.append(option)
         return
 
-    def delta_hedge(self):
+    def delta_hedge(self, logger=False):
+        if logger:
+            mylogger.logger.info('Start delta hedging.')
         unique_asset = list(set([option.asset for option in self.basket]))
         #considering 1 unique asset
         unique_asset = unique_asset[0]
         delta = round(-self.Delta_DF())
         unique_asset.quantity = delta
+        if logger:
+            mylogger.logger.info('Delta hedging done. SUCCESS.')
         return
 
     def get_move_deltahedge(self):
@@ -206,7 +210,7 @@ class Book(Option_eu):
         fig.show()
 
     def Vanna_DF(self):
-        return sum([option.Vega_DF() for option in self.basket])
+        return sum([option.Vanna_DF() for option in self.basket])
 
     def Vanna_surface(self):
         if self.asset.St > 10:

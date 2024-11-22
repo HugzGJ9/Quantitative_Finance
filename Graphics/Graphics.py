@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib import pyplot
 
 from Options import payoffs
 import pandas as pd
@@ -56,3 +57,14 @@ def correl_plot(df, x_label, y_label, title):
     return
 if __name__ == '__main__':
     data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
+
+def plotGreek(St, Greek_Option, list_delta, range_st, greek):
+    plt.plot(range_st, list_delta, label=f'{greek} vs Range', color='blue', linestyle='-', linewidth=2)
+    plt.plot(St, Greek_Option, 'x', label=f'Option {greek} at Specific Points',
+             color='red', markersize=10, markeredgewidth=2)
+    plt.title(f'{greek} of the Option vs. Underlying Asset Price')
+    plt.xlabel('Underlying Asset Price (St)')
+    plt.ylabel(f'Option {greek}')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
