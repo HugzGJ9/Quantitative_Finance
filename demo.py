@@ -23,10 +23,9 @@ def runDemo():
 def runDemoVolSurface():
     stock1 = asset_BS(100, 0)
     option1 = Option_eu(position=100, type='Call EU', asset=stock1, K=95, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
-    option2 = Option_eu(position=-10, type='Call EU', asset=stock1, K=105, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
+    option2 = Option_eu(position=-100, type='Call EU', asset=stock1, K=105, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
 
     book1 = Book([option1, option2], logger=True)
-
     book_price = book1.option_price_close_formulae()
     mylogger.logger.info(f"Option Price: {book_price}")
     book1.RiskAnalysis(logger=True)
@@ -37,6 +36,7 @@ def runDemoVolSurface():
     book1.PnlRisk()
     book1.VannaRisk()
     book1.VolgaRisk()
+    book1.display_payoff_option()
     return
 
 

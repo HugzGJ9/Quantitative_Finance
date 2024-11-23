@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import pyplot as plt
 
 from Graphics.Graphics import plot_2d
 from Options.Options_class import  Option_eu, Option_prem_gen
@@ -52,29 +53,7 @@ class Book(Option_eu):
         if self.asset:
             payoff += ST*self.asset.quantity
         return payoff
-    def display_payoff_option(self):
-        K_min = 99999999
-        K_max = -99999999
 
-        for option in self.basket:
-            if type(option.K) == list:
-                K_min_temp = min(option.K)
-                K_max_temp = max(option.K)
-            else:
-                K_min_temp = option.K
-                K_max_temp = option.K
-
-            if K_min_temp < K_min:
-                K_min = K_min_temp
-            if K_max_temp > K_max:
-                K_max = K_max_temp
-        start = K_min*0.5
-        end = K_max*1.5
-        ST = list(range(round(start), round(end)))
-        payoffs = []
-        for i in ST:
-            payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title="Payoff of the book")
     def Delta_DF(self):
         hedge = self.asset.quantity if self.asset != None else 0
         return sum([option.Delta_DF() for option in self.basket]) + hedge
@@ -247,6 +226,18 @@ class Book(Option_eu):
 
     def Volga_DF(self):
         return sum([option.Volga_DF() for option in self.basket])
+
+    def display_payoff_option(self, isShow=True):
+        if self.asset.St > 10:
+            St = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1)
+        else:
+            St = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
+        payoffs = [sum(x) for x in zip(*[option.display_payoff_option(isShow=False, range=St)[1] for option in self.basket])]
+        asset_contributions = [st * self.asset.quantity for st in St] if self.asset.quantity != 0 else [0] * len(St)
+        book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
+        plt.clf()
+        plot_2d(St, book_payoff, "Asset price", "Payoff", isShow=isShow, title=f"Book payoff")
+        return
     def simu_asset(self, time):
         self.book_old = copy.deepcopy(self)
         list_asset = list(set([x.asset for x in self.basket]))

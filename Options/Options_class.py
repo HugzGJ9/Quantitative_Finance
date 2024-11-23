@@ -75,19 +75,20 @@ class Option_eu:
         elif self.type == "Put EU":
             payoff = payoff_put_eu(ST, self.K) * self.position
         return payoff
-    def display_payoff_option(self):
-
-        if self.K>10:
-            ST = range(round(self.K*0.5), round(self.K*1.5), 2)
+    def display_payoff_option(self, isShow=True, range=None):
+        if range is not None:
+            ST = range
         else:
-            ST = [x/100 for x in range(round(self.K*0.5*100), round(self.K*3*100), 2)]
+            if self.K>10:
+                ST = range(round(self.K*0.5), round(self.K*1.5), 2)
+            else:
+                ST = [x/100 for x in range(round(self.K*0.5*100), round(self.K*3*100), 2)]
 
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
-
-
+        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=isShow, title=f"{self.type} payoff")
+        return [ST, payoffs]
     def option_price_mc(self, Nmc=1000):
         prix_option = 0
         for i in range(Nmc):
