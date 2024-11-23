@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from  Asset_Modeling.Asset_class import asset_BS
-from Options.Options_class import Option_eu, Option_prem_gen, plot_greek_curves_2d
+from Options.Options_class import Option_eu, Option_prem_gen
 from Options.Book_class import Book
 from Logger.Logger import mylogger
 SMILE = pd.read_excel('Volatility/Smile.xlsx')
