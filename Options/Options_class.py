@@ -599,60 +599,6 @@ class Option_prem_gen(Option_eu):
         for option in self.options:
             option.t = self.t
 
-def plot_greek_curves_2d(position, type_option, greek, K, t_, T, r, vol):
-    St_range = range(20, 180, 1)
-    Eu_options = ['Call EU', 'Put EU']
-    Option_first_gen = ['Call Spread', 'Put Spread', 'Strangle']
-    if type_option in Eu_options:
-        Option = Option_eu
-    elif type_option in Option_first_gen:
-        Option = Option_prem_gen
-    if greek.lower() =='delta':
-        Option.greek = Option.Delta_DF
-    elif greek.lower() == 'gamma':
-        Option.greek = Option.Gamma_DF
-    elif greek.lower() == 'vega':
-        Option.greek = Option.Vega_DF
-    elif greek.lower() == 'theta':
-        Option.greek = Option.Theta_DF
-
-    if type(vol) == list:
-        moving_param = vol
-        moving_param_label = "volatility"
-    elif type(T) == list:
-        moving_param = T
-        moving_param_label = "maturity"
-    elif type(r) == list:
-        moving_param = r
-        moving_param_label = "st rate"
-    else:
-        greek_list = []
-        for i in St_range:
-            asset = asset_BS(i, 0)
-            option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
-            greek_list.append(option_obj.greek())
-        #greek_list = [i*position for i in greek_list]
-        plot_2d(St_range, greek_list, "Prix de l'actif", greek, True, f"{greek} curve")
-        return
-
-    for v in moving_param:
-        if moving_param_label == "volatility":
-            vol = v
-        elif moving_param_label == "maturity":
-            T = v
-        elif moving_param_label == "st rate":
-            r = v
-        greek_list = []
-        for i in St_range:
-            asset = asset_BS(i, 0)
-            option_obj = Option(position, type_option, asset, K, t_, T, r, vol)
-            greek_list.append(option_obj.greek())
-        greek_list = [i*position for i in greek_list]
-        plot_2d(St_range, greek_list, "Prix de l'actif", greek, False, f"{greek} curve - {type_option}")
-    moving_param = [moving_param_label + ' : ' + str(x) for x in moving_param]
-    plt.legend(moving_param)
-    plt.show()
-
 class Option_ame:
     def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma):
         self.position = position

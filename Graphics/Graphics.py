@@ -3,20 +3,18 @@ from matplotlib import pyplot
 
 from Options import payoffs
 import pandas as pd
-def plot_2d_df(dataframe, country, loop, isShow=True):
+def plot_power_correl_vsCountries(dataframe, country, loop, isShow=True):
     dataframe.plot(linestyle='-', linewidth=2, title=f'{country}vs Neighbour countries {loop}')
     if isShow:
         plt.grid(True)
         plt.legend()
         plt.show()
     return
-def plot_2d(x_, y_, x_axis, y_axis, isShow=True, title=None, legend=None):
+def plot_2d(x_, y_, x_axis=None, y_axis=None, isShow=True, title=None, legend=None):
     plt.plot(x_, y_, label=title, color='blue', linestyle='-', linewidth=2)
-
     plt.title(title)
     plt.xlabel(x_axis)
     plt.ylabel(y_axis)
-
     if legend:
         plt.legend(legend)
     if isShow:
@@ -55,8 +53,6 @@ def correl_plot(df, x_label, y_label, title):
     plt.grid(color='gray', linestyle='--', linewidth=0.5)
     plt.show()
     return
-if __name__ == '__main__':
-    data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
 
 def plotGreek(St, Greek_Option, list_delta, range_st, greek):
     plt.plot(range_st, list_delta, label=f'{greek} vs Range', color='blue', linestyle='-', linewidth=2)
@@ -68,3 +64,7 @@ def plotGreek(St, Greek_Option, list_delta, range_st, greek):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+if __name__ == '__main__':
+    data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
+

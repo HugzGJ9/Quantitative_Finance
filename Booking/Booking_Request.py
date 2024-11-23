@@ -147,7 +147,7 @@ if __name__ == '__main__':
     stock = Asset_class.asset_BS(2.624, 0, "NG=F")
     option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
     book_name = "GasCall"
-    # volatilityReport()
+    volatilityReport()
     # book = Book_class.Book([option])
     #
 
@@ -163,4 +163,4 @@ if __name__ == '__main__':
     # #
     # booking_request = Booking_Request(option)
     # booking_request.run_Booking(lot_size=10000, book_name=book_name)
-    run_Mtm(VI=0.62, LS=10000, book_name=book_name)
+    # run_Mtm(VI=0.62, LS=10000, book_name=book_name)
