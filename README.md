@@ -106,8 +106,7 @@ The **Quantitative Finance Library** is now a robust tool for risk analysis and 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo.git
-   cd your-repo'''
+   git clone https://github.com/Quantitative_Finance.git'''
 2. Install dependencies:
    ```bash
    pip install -r requirements.txt'''
