@@ -4,7 +4,7 @@ Welcome to the **Quantitative Finance Library**, a Python-based toolkit for mode
 
 I have also led parallel studies on:
 - **Optimization** techniques for portfolio management.
-- **Pricing CSSOs** (Compound Spread and Swing Options).
+- **Pricing CSSOs**.
 - **Swing Options** for energy markets.
 - **DA Power Correlations** between countries.
 - **Cross-Border Optimizations** in power markets.
