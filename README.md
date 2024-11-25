@@ -1,24 +1,16 @@
 # Quantitative Finance Library & Option Book Management Tool
 
-Welcome to the **Quantitative Finance Library**, a Python-based toolkit for modeling, analyzing, and managing financial derivatives. This repository is the result of in-depth studies in quantitative finance, combining practical tools with advanced academic concepts.
-
-I have also led parallel studies on:
-- **Optimization** techniques for portfolio management.
-- **Pricing CSSOs**.
-- **Swing Options** for energy markets.
-- **DA Power Correlations** between countries.
-- **Cross-Border Optimizations** in power markets.
-
-This library integrates these research insights into actionable tools for advanced financial and energy market analysis.
+Welcome to the **Quantitative Finance Library**, a Python-based toolkit for modeling, analyzing, and managing books of european options. This repository is the result of in-depth studies in quantitative finance, combining practical tools with advanced academic concepts.
 
 ---
 
 ## 📊 Features and Highlights
 
-- **Comprehensive Risk Analysis**: Delta, Gamma, Vega, Theta, and PnL risk metrics.
-- **Option Portfolio Management**: Analyze and manage books of European options.
-- **Dynamic Simulations**: Simulate the evolution of underlying assets and risk profiles.
-- **Volatility Surfaces**: Model volatility skew and term structures for accurate pricing.
+- **Comprehensive Risk Analysis**: Includes PnL, Greeks, Vega convexity, skew, and term structure risk metrics.  
+- **Option Portfolio Management**: Analyzing and managing books of European options.  
+- **Dynamic Simulations**: Simulating the evolution of underlying assets and risk profiles.  
+- **Volatility Surfaces**: Modeling volatility as a surface for active volatility trading.  
+- **Learning Tool**: A valuable application for an initial assessment of risk exposure in a new, advanced trading strategy.  
 
 ---
 
@@ -49,7 +41,7 @@ This library provides a detailed breakdown of portfolio risk. Below are sample v
 ## 🌀 Volatility Surface: Smile and Skew
 
 ### Volatility Surface Example
-Volatility surfaces integrate skew and term structure, OTM option trading.
+Volatility surfaces integrate skew and term structure, required for OTM option trading.
 
 ![image](https://github.com/user-attachments/assets/379b7880-fb12-4469-96e9-87a55c2d5e6b)
 
@@ -64,10 +56,9 @@ Volatility surfaces integrate skew and term structure, OTM option trading.
 ### 2. **Option Class**
 - Built on the Asset class to represent financial derivatives.
 - **Key methods**:
-  - Risk Metrics: `DeltaRisk`, `GammaRisk`, `VegaRisk`, `ThetaRisk`
+  - Risk Metrics: `DeltaRisk`, `GammaRisk`, `VegaRisk`, `ThetaRisk`, `VannaRisk`, `VolgaRisk`
   - Pricing: `option_price_mc`, `option_price_close_formulae`
-  - Visualization: `display_payoff_option`, `RiskAnalysis`
-
+  - Visualization: `display_payoff_option`, `RiskAnalysis`, `PnlRisk`
 ### 3. **Option 1st Generation**
 - Comprises European vanilla options (e.g., spreads, straddles, strangles).
 - Inherits features from the `Option` class for advanced analysis.
@@ -88,6 +79,19 @@ Volatility surfaces integrate skew and term structure, OTM option trading.
 ![image](https://github.com/user-attachments/assets/b466aacd-d2ba-44cd-b97d-140bcb5f6d19)
 
 ![image](https://github.com/user-attachments/assets/b876d322-39fc-418f-8bab-6ae6fce3206f)
+
+---
+
+## :zap: Subprojects
+
+I have also led parallel studies on:
+- **Optimizations**.
+- **DA Power Correlations** between countries.
+- **Cross-Border Optimizations** in power markets.
+- **Swing Options** for energy markets.
+- **Pricing CSSOs**.
+
+This library integrates these research insights into actionable tools for advanced financial and energy market analysis.
 
 ---
 
