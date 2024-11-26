@@ -1,39 +1,125 @@
-Quantitative_Finance is a project that began in Fall 2023, with its purpose and motivations evolving over time. Initially, the goal was to create a comprehensive project that integrated various academic approaches. However, only a few useful features from these approaches have been incorporated into the project.
+# Quantitative Finance Library & Option Book Management Tool
 
-The second motivation was to develop a personal Python library for quantitative finance, aimed at retrieving and visualizing metrics related to advanced options strategies.
+Welcome to the **Quantitative Finance Library**, a Python-based toolkit for modeling, analyzing, and managing books of european options. This repository is the result of in-depth studies in quantitative finance, combining practical tools with advanced academic concepts.
 
-The third objective was to study the evolution of an options book over time by simulating the underlying assets and analyzing how risks change.
+---
 
-The current motivation is to utilize this project as a tool for managing an options portfolio.
+## 📊 Features and Highlights
 
-1/ASSET CLASS
+- **Comprehensive Risk Analysis**: Includes PnL, Greeks, Vega convexity, skew, and term structure risk metrics.  
+- **Option Portfolio Management**: Analyzing and managing books of European options.  
+- **Dynamic Simulations**: Simulating the evolution of underlying assets and risk profiles.  
+- **Volatility Surfaces**: Modeling volatility as a surface for active volatility trading.  
+- **Learning Tool**: A valuable application for an initial assessment of risk exposure in a new, advanced trading strategy.  
 
-In this project, the underlying asset of an option has been modeled as an object. The main purpose was to enable simulations and manage positions, specifically for hedging in option management.
+---
 
-2/OPTION CLASS
+## 🚀 Demo Code
 
-The instance creation first requires the creation of an Asset object, which is then used as a parameter for the Option_eu object. Below is the list of methods defined for the class:
+Here's a demonstration of the tool in action:
 
-DeltaRisk / Delta_DF / Delta_surface / GammaRisk / Gamma_DF / Gamma_surface / VegaRisk / Vega_DF / Vega_surface / ThetaRisk / Theta_DF / Theta_surface / PnlRisk / RiskAnalysis /  display_payoff_option / get_payoff_option / option_price_close_formulae / option_price_mc / run_Booking / simu_asset
+![Demo Code Example](https://github.com/user-attachments/assets/98d13de1-a7b3-488e-9a02-847eeb43d9bd)
 
-3/ OPTION 1st GEN
+---
 
-The Option 1st Generation class is defined as a combination of European vanilla options, such as spreads, straddles, and strangles. An inheritance relationship exists between this class and the OptionEU class.
+## 📈 Risk Exposure Analysis
 
-4/BOOK CLASS
+This library provides a detailed breakdown of portfolio risk. Below are sample visualizations of risk metrics:
 
-Similar to the Option 1st Generation class, the Book class is defined as a combination of OptionEU or Option 1st Generation objects. For now, the Book class considers a single unique underlying asset.
+### Delta Risk Exposure
+![Delta Risk](https://github.com/user-attachments/assets/7cf6c9cc-4741-4951-be15-0e719b4263c9)
 
-5/BOOKING REQUEST
+### Vega Convexity
+![image](https://github.com/user-attachments/assets/02be9ce0-67f1-41ea-8093-e4032d2fda39)
 
-By creating an instance of a Booking Request that can take either an Option or Asset object as a parameter, you can update a booking Excel file used to manage option book positions.
+### Pnl Price Exposure
 
-![image](https://github.com/user-attachments/assets/409b6bb2-b3db-43cb-9c70-53fbab07939d)
+![image](https://github.com/user-attachments/assets/94a13926-a622-41f1-b062-ae56411f80b7)
 
-From this, the system can compute the Mark-to-Market (MtM) value of the position and assess the risk exposure of the book.
+---
 
-![image](https://github.com/user-attachments/assets/f10715be-78a7-450b-a6b1-8fdcbdddbb9b)
+## 🌀 Volatility Surface: Smile and Skew
 
-Figure: Inheritance relationship between classes.
+### Volatility Surface Example
+Volatility surfaces integrate skew and term structure, required for OTM option trading.
 
-![graphviz](https://github.com/user-attachments/assets/c7cde25a-0317-4ea7-84bd-7d4e8f35b87a)
+![image](https://github.com/user-attachments/assets/379b7880-fb12-4469-96e9-87a55c2d5e6b)
+
+---
+
+## 📚 Description of Classes
+
+### 1. **Asset Class**
+- Represents the underlying asset for options.
+- Enables simulations and position management for hedging strategies.
+
+### 2. **Option Class**
+- Built on the Asset class to represent financial derivatives.
+- **Key methods**:
+  - Risk Metrics: `DeltaRisk`, `GammaRisk`, `VegaRisk`, `ThetaRisk`, `VannaRisk`, `VolgaRisk`
+  - Pricing: `option_price_mc`, `option_price_close_formulae`
+  - Visualization: `display_payoff_option`, `RiskAnalysis`, `PnlRisk`
+### 3. **Option 1st Generation**
+- Comprises European vanilla options (e.g., spreads, straddles, strangles).
+- Inherits features from the `Option` class for advanced analysis.
+
+### 4. **Book Class**
+- Combines multiple options (European or 1st Generation) into a portfolio.
+- Focused on a single underlying asset for simplicity.
+
+### 5. **Booking Request**
+- Updates a booking Excel file to manage option book positions.
+- Computes Mark-to-Market (MtM) values and assesses risk exposure.
+
+**Example Visualization:**
+
+![Booking Request Visualization](https://github.com/user-attachments/assets/d3c5abc5-c9e0-4895-9f6f-3da11c368b95)
+
+
+![image](https://github.com/user-attachments/assets/b466aacd-d2ba-44cd-b97d-140bcb5f6d19)
+
+![image](https://github.com/user-attachments/assets/b876d322-39fc-418f-8bab-6ae6fce3206f)
+
+---
+
+## :zap: Subprojects
+
+I have also led parallel studies on:
+- **Optimizations**.
+- **DA Power Correlations** between countries.
+- **Cross-Border Optimizations** in power markets.
+- **Swing Options** for energy markets.
+- **Pricing CSSOs**.
+
+This library integrates these research insights into actionable tools for advanced financial and energy market analysis.
+
+---
+
+## 🎯 Motivations
+
+This project began in **Fall 2023** and has evolved with three main goals:
+1. **Academic Exploration**: Integrate advanced quantitative finance approaches.
+2. **Personal Library**: Develop a Python toolkit for advanced option strategies.
+3. **Portfolio Management**: Study and manage the evolution of option books over time.
+
+The **Quantitative Finance Library** is now a robust tool for risk analysis and option portfolio management, leveraging simulations and dynamic risk profiling.
+
+---
+
+## 🛠️ How to Use
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Quantitative_Finance.git
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+3. Explore the demo code and customize it for your use case.
+
+## 📥 Contributions
+
+Contributions, issues, and feature requests are welcome! Feel free to fork the repository and submit a pull request.
+
+## 📧 Contact
+
+For questions or feedback, contact: hugo.lambert.perso@gmail.com
