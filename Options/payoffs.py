@@ -30,6 +30,10 @@ def d__(St, K, t, T, r, sigma):
     d_1 = (np.log(St / K) + (r + 0.5 * sigma ** 2) * (T-t)) / (sigma * np.sqrt(T-t))
     d_2 = d_1 - sigma * np.sqrt(T-t)
     return d_1, d_2
+def d__magrabe(St_1, St_2, t, T, r, sigma):
+    d_1 = (np.log(St_1 / St_2) + (r + 0.5 * sigma ** 2) * (T-t)) / (sigma * np.sqrt(T-t))
+    d_2 = d_1 - sigma * np.sqrt(T-t)
+    return d_1, d_2
 def close_formulae_call_eu(St, K, t, T, r, sigma):
     d_1, d_2 = d__(St, K, t, T, r, sigma)
     return St * normal_repartition(d_1) - K * np.exp(-r *(T-t)) * normal_repartition(d_2)
@@ -49,3 +53,8 @@ def gamma_option_eu(type, St, K, t, T, r, sigma):
         return normal_distribution(d_1) / (St*sigma * np.sqrt(T - t))
     elif type == 'Put EU':
         return derive_d_1*normal_distribution(-d_1)
+
+def close_formulae_magrabe(St_1, St_2, t, T, r, sigma1, sigma2, correl):
+    sigma = np.sqrt(sigma1**2 + sigma2**2 - 2*correl*sigma1*sigma2)
+    d_1, d_2 = d__magrabe(St_1, St_2, t, T, r, sigma)
+    return St_1 * normal_repartition(d_1) - St_2 * normal_repartition(d_2)

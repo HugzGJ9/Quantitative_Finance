@@ -3,11 +3,12 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+import Asset_Modeling.Asset_class
 from Asset_Modeling.Asset_class import asset_BS
 from  Asset_Modeling.Actif_stoch_BS import simu_actif
 from Graphics.Graphics import plot_2d, plotGreek
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
-    close_formulae_put_eu, payoff_call_eu_barrier
+    close_formulae_put_eu, payoff_call_eu_barrier, close_formulae_magrabe
 import plotly.graph_objects as go
 from Logger.Logger import mylogger
 from scipy.interpolate import RegularGridInterpolator
@@ -684,8 +685,22 @@ class Option_ame:
 
         return option_values[0]
 
+class ExchangeOption:
+    def __init__(self, position, asset1:asset_BS, asset2:asset_BS, T, r, sigma_1, sigma_2, correl):
+        self.position = position
+        self.asset_1 = asset1
+        self.asset_2 = asset2
+        self.T = T
+        self.r = r
+        self.sigma_1 = sigma_1
+        self.sigma_2 = sigma_2
+        self.correl = correl
+    def option_price_close_formulae(self):
+        return self.position * close_formulae_magrabe(self.asset_1.St, self.asset_2.St, 0, self.T, self.r, self.sigma_1, self.sigma_2, self.correl)
+
 if __name__ == '__main__':
     stock1 = asset_BS(100, 0)
+    stock2 = asset_BS(101, 0)
     # price1 = optionUS.option_price_lsmc(Nmc=1000)
     # optionEU = Option_eu(1, 'Call EU', stock1, 100, 10/365, 0.05, 0.2)
     # price1 = optionEU.option_price_binomial_tree()
