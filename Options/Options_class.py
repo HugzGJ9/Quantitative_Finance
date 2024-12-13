@@ -48,18 +48,19 @@ class Option_eu:
             (self.moneyness, self.maturities), self.vol_data, bounds_error=False, fill_value=None
         )
 
-    def get_sigma(self, St, T):
+    def get_sigma(self):
         """Fetch volatility dynamically from the surface or use constant sigma."""
         if self.use_vol_surface:
-            moneyness = (St / self.K - 1)
-            return round(float(self.volatility_interpolator((moneyness, T))), 4)
+            moneyness = (self.asset.St / self.K - 1)
+            self.sigma = round(float(self.volatility_interpolator((moneyness, self.T))), 4)
+            return self.sigma
         elif self.sigma is not None:
             return self.sigma
         else:
             raise ValueError("Either constant sigma or volatility surface must be defined.")
 
     def option_price_close_formulae(self):
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         if self.type == "Call EU":
             option_price = close_formulae_call_eu(self.asset.St, self.K, self.t, self.T, self.r, sigma)
             return self.position * option_price
@@ -93,7 +94,7 @@ class Option_eu:
     def option_price_mc(self, Nmc=1000):
         prix_option = 0
         for i in range(Nmc):
-            prix_actif = simu_actif(self.asset.St, self.t, self.T, self.r, self.get_sigma(self.asset.St, self.T))
+            prix_actif = simu_actif(self.asset.St, self.t, self.T, self.r, self.get_sigma())
             if self.type == "Call EU":
                 prix_option += payoff_call_eu(prix_actif[-1], self.K)
             elif self.type == "Put EU":
@@ -288,7 +289,7 @@ class Option_eu:
                           ))
         fig.show()
     def Vega_DF(self):
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         delta_vol = 0.00001
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                     sigma+delta_vol).option_price_close_formulae()
@@ -309,7 +310,7 @@ class Option_eu:
     def Vega_surface(self):
         option_matu = self.T
         list_vega = []
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         range_sigma = [sigma / 100 for sigma in range(round(sigma * 100*0.5), round(sigma * 100*1.5), 2)]
         range_t = [t / (365*100) for t in range(0, round(self.T * 100*365), 2)]
 
@@ -380,7 +381,7 @@ class Option_eu:
         fig.show()
     def Volga_DF(self): #Recall : Volga corresponds to the Vega change regarding the IV change, it is the Vega convexity
         delta_vol = 0.001
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                      sigma + delta_vol).Vega_DF()
         option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
@@ -415,7 +416,7 @@ class Option_eu:
     def Vega_convexity(self, show=True):
         Vega_Option = self.Vega_DF()
         range_vol = [x / 100 for x in range(1, 100)]
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         list_vega = list()
         for vol in range_vol:
             list_vega.append(Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r, vol).Vega_DF())
@@ -497,7 +498,7 @@ class Option_eu:
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
-        sigma = self.get_sigma(self.asset.St, self.T)
+        sigma = self.get_sigma()
         booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
 
@@ -698,12 +699,77 @@ class ExchangeOption:
     def option_price_close_formulae(self):
         return self.position * close_formulae_magrabe(self.asset_1.St, self.asset_2.St, 0, self.T, self.r, self.sigma_1, self.sigma_2, self.correl)
 
+    def finite_difference_pricing(self, S1_max, S2_max, S1_steps, S2_steps, time_steps):
+        """
+        Pricing using the finite difference method.
+        :param S1_max: Maximum value of asset 1
+        :param S2_max: Maximum value of asset 2
+        :param S1_steps: Number of grid steps for asset 1
+        :param S2_steps: Number of grid steps for asset 2
+        :param time_steps: Number of time steps
+        :return: Option price
+        """
+        # Grid initialization
+        S1 = np.linspace(0, S1_max, S1_steps)
+        S2 = np.linspace(0, S2_max, S2_steps)
+        dt = self.T / time_steps
+        dS1 = S1[1] - S1[0]
+        dS2 = S2[1] - S2[0]
+
+        # Correlation term
+        rho = self.correl
+        var_1 = self.sigma_1**2
+        var_2 = self.sigma_2**2
+
+        # Initialize the option value grid
+        V = np.zeros((S1_steps, S2_steps))
+
+        # Boundary condition: payoff at maturity
+        for i in range(S1_steps):
+            for j in range(S2_steps):
+                V[i, j] = max(self.position * (S1[i] - S2[j]), 0)
+
+        # Backward iteration through time
+        for t in range(time_steps - 1, -1, -1):
+            V_next = V.copy()
+            for i in range(1, S1_steps - 1):
+                for j in range(1, S2_steps - 1):
+                    # Finite difference coefficients
+                    dVdS1 = (V_next[i + 1, j] - V_next[i - 1, j]) / (2 * dS1)
+                    dVdS2 = (V_next[i, j + 1] - V_next[i, j - 1]) / (2 * dS2)
+                    d2VdS1 = (V_next[i + 1, j] - 2 * V_next[i, j] + V_next[i - 1, j]) / (dS1**2)
+                    d2VdS2 = (V_next[i, j + 1] - 2 * V_next[i, j] + V_next[i, j - 1]) / (dS2**2)
+                    d2VdS1S2 = (V_next[i + 1, j + 1] - V_next[i + 1, j - 1] -
+                                V_next[i - 1, j + 1] + V_next[i - 1, j - 1]) / (4 * dS1 * dS2)
+
+                    # PDE discretization
+                    V[i, j] = V_next[i, j] + dt * (
+                        -self.r * V_next[i, j]
+                        + (self.r - 0.5 * var_1) * S1[i] * dVdS1
+                        + (self.r - 0.5 * var_2) * S2[j] * dVdS2
+                        + 0.5 * var_1 * S1[i]**2 * d2VdS1
+                        + 0.5 * var_2 * S2[j]**2 * d2VdS2
+                        + rho * self.sigma_1 * self.sigma_2 * S1[i] * S2[j] * d2VdS1S2
+                    )
+
+        # Return interpolated price for initial asset prices
+        S1_idx = np.searchsorted(S1, self.asset_1.St)
+        S2_idx = np.searchsorted(S2, self.asset_2.St)
+        return V[S1_idx, S2_idx]
 if __name__ == '__main__':
-    stock1 = asset_BS(100, 0)
-    stock2 = asset_BS(101, 0)
+    # Create assets and the exchange option
+    stock1 = asset_BS(100, 0)  # S1 = 100
+    stock2 = asset_BS(95, 0)  # S2 = 101
+    spread_option = ExchangeOption(1, stock1, stock2, 365 / 365, 0.05, 0.2, 0.25, 0.5)
+
+    # Price the option using FDM
+    price_fd = spread_option.finite_difference_pricing(S1_max=150, S2_max=150, S1_steps=200, S2_steps=200, time_steps=500)
+    print("FDM Spread Option Price:", price_fd)
+    print("FDM Spread Option Price:", spread_option.option_price_close_formulae())
+
     # price1 = optionUS.option_price_lsmc(Nmc=1000)
     # optionEU = Option_eu(1, 'Call EU', stock1, 100, 10/365, 0.05, 0.2)
     # price1 = optionEU.option_price_binomial_tree()
-    optionUS = Option_ame(1, 'Put US', stock1, 100, 25/365, 0.05, 0.5)
-    optionUS.option_price_binomial_tree()
-    optionUS.option_price_lsmc()
+    # optionUS = Option_ame(1, 'Put US', stock1, 100, 25/365, 0.05, 0.5)
+    # optionUS.option_price_binomial_tree()
+    # optionUS.option_price_lsmc()

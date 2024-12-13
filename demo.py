@@ -5,7 +5,7 @@ from  Asset_Modeling.Asset_class import asset_BS
 from Options.Options_class import Option_eu, Option_prem_gen
 from Options.Book_class import Book
 from Logger.Logger import mylogger
-SMILE = pd.read_excel('Volatility/Smile.xlsx')
+SMILE = pd.read_excel('Volatility/Smile.xlsx', sheet_name='smile')
 def runDemo():
     stock1 = asset_BS(100, 0, logger=True)
     option1 = Option_eu(-1, 'Put EU', stock1, 80, 10 / 365, 0.02, sigma=0.5, use_vol_surface=False, logger=True)

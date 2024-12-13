@@ -1,5 +1,6 @@
 import numpy as np
 
+import Options.Options_class
 from  Asset_Modeling.Asset_class import asset_BS
 from Options.Options_class import Option_eu
 import datetime
@@ -160,6 +161,21 @@ def computecorr(ticker1, ticker2):
     monthly_correlations = monthly_correlations.drop(columns=['todrop'])
     correl_plot(monthly_correlations['Correlation'], 'month', 'Correlation', f'Monthly correlation evolution {ticker1} / {ticker2}')
     return monthly_correlations
+
+def find_vol_impli(option:Options.Options_class.Option_eu, target_price:float, tol=1e-6, max_iter=100):
+    vol = option.sigma
+    for i in range(max_iter):
+        option.sigma = vol
+        price = option.option_price_close_formulae()
+        vega = option.Vega_DF()
+        """CALIBRATION WITH NEWTON ALGORITHM"""
+        vol -= (price - target_price) / (vega*100)
+
+        if abs(price - target_price) < tol:
+            return vol
+
+    raise ValueError("Implied volatility not found within the maximum number of iterations")
+
 
 if __name__ == '__main__':
     # vol = Volatilite_implicite('AAPL', '2024-12-20', 'Call EU', 0.04, plot=True, isCrypto=False)

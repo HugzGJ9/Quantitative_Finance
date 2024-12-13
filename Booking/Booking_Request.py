@@ -13,6 +13,7 @@ from Logger import Logger
 booking_logg = Logger.LOGGER()
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+SMILE = pd.read_excel('Volatility/Smile.xlsx', sheet_name='smile_NG')
 
 class Booking_Request():
     def __init__(self, Book:Book_class.Book=None, Option:Options_class.Option_eu=None,
@@ -144,8 +145,10 @@ def run_Mtm(VI, LS, book_name=None):
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(2.624, 0, "NG=F")
-    option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
+    stock = Asset_class.asset_BS(3.31, 0, "NG=F")
+    # option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
+    option = Options_class.Option_eu(-10, 'Call EU', stock, 3.47, 1/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
+
     book_name = "GasCall"
     volatilityReport()
     # book = Book_class.Book([option])
