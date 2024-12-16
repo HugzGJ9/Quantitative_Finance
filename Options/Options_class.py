@@ -2,6 +2,7 @@ import datetime
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from matplotlib.ticker import FuncFormatter
 
 import Asset_Modeling.Asset_class
 from Asset_Modeling.Asset_class import asset_BS
@@ -38,21 +39,29 @@ class Option_eu:
             )
 
     def set_volatility_surface(self):
-        self.volatility_surface_df['Moneyness'] = self.volatility_surface_df['Moneyness'].replace("ATM", 0).astype(
+        self.volatility_surface_df['Strike_percentage'] = self.volatility_surface_df['Strike_percentage'].replace("ATM", 0).astype(
             float)
-        self.moneyness = self.volatility_surface_df['Moneyness'].to_numpy()
+        self.strike = (self.volatility_surface_df['Strike_percentage'].to_numpy() + 1) * self.asset.St
         self.maturities = np.array(
             [1 / 365, 7 / 365, 30 / 365, 90 / 365, 180 / 365, 365 / 365])
-        self.vol_data = self.volatility_surface_df.iloc[:, 1:].to_numpy()
+        self.vol_data = self.vol_data = self.volatility_surface_df.iloc[:, 1:].to_numpy()
         self.volatility_interpolator = RegularGridInterpolator(
-            (self.moneyness, self.maturities), self.vol_data, bounds_error=False, fill_value=None
+            (self.strike, self.maturities), self.vol_data, bounds_error=False, fill_value=None
         )
+    def show_volatility_surface(self):
+        columns = self.volatility_surface_df.columns
+        for i in range(1, len(columns)):
+            plot_2d(self.volatility_surface_df['Strike_percentage'], self.volatility_surface_df[columns[i]], 'STRIKE %', 'Volatility', isShow=False, legend=list(columns[1:]))
+        plt.plot(self.K / self.asset.St - 1, self.get_sigma(), 'x', label=f'Option sigma',
+                 color='red', markersize=10, markeredgewidth=2)
+        formatter = FuncFormatter(lambda y, _: f'{y * 100:.0f}%')
+        plt.gca().yaxis.set_major_formatter(formatter)
+        plt.show()
 
     def get_sigma(self):
         """Fetch volatility dynamically from the surface or use constant sigma."""
         if self.use_vol_surface:
-            moneyness = (self.asset.St / self.K - 1)
-            self.sigma = round(float(self.volatility_interpolator((moneyness, self.T))), 4)
+            self.sigma = round(float(self.volatility_interpolator((self.K, self.T))), 4)
             return self.sigma
         elif self.sigma is not None:
             return self.sigma
@@ -156,12 +165,13 @@ class Option_eu:
         return option_values[0]
 
     def Delta_DF(self):
-        delta_St = 0.0001
+        delta_St = 0.001
         self.asset.St = self.asset.St + delta_St
         option_delta_St = self.option_price_close_formulae()
-        self.asset.St = self.asset.St - delta_St
+        self.asset.St = self.asset.St - 2*delta_St
         option_option = self.option_price_close_formulae()
-        delta = (option_delta_St - option_option)/delta_St
+        self.asset.St = self.asset.St + delta_St
+        delta = (option_delta_St - option_option)/(2*delta_St)
         return delta
     def DeltaRisk(self, logger=False):
         if logger:
@@ -188,20 +198,22 @@ class Option_eu:
             Greek_DF = self.Vanna_DF
         elif greek == "Volga":
             Greek_DF = self.Volga_DF
+        elif greek == "Skew":
+            Greek_DF = self.Skew_DF
         else:
             raise ValueError(f"Invalid Greek specified: {greek}")
         Greek_Option = Greek_DF()
         if self.asset.St > 10:
             range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
         else:
-            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 2)]
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 2 * 100), 2)]
         asset_st = self.asset.St
-        list_delta = list()
+        list_greek = list()
         for st in range_st:
             self.asset.St = st
-            list_delta.append(Greek_DF())
+            list_greek.append(Greek_DF())
         self.asset.St = asset_st
-        return Greek_Option, list_delta, range_st
+        return Greek_Option, list_greek, range_st
 
     def Delta_surface(self):
         if self.asset.St > 10:
@@ -236,7 +248,7 @@ class Option_eu:
                           ))
         fig.show()
     def Gamma_DF(self):
-        delta_St = 0.0001
+        delta_St = 0.001
         original_St = self.asset.St
         self.asset.St = original_St + delta_St
         option_gamma_plus = self.option_price_close_formulae()
@@ -245,7 +257,7 @@ class Option_eu:
         self.asset.St = original_St
         option_option = self.option_price_close_formulae()
         self.asset.St = original_St
-        gamma = ((option_gamma_plus + option_gamma_minus - 2 * option_option) / delta_St ** 2)
+        gamma = (option_gamma_plus + option_gamma_minus - 2 * option_option) / (delta_St ** 2)
         return gamma
 
     def GammaRisk(self, logger=False):
@@ -291,12 +303,13 @@ class Option_eu:
     def Vega_DF(self):
         sigma = self.get_sigma()
         delta_vol = 0.00001
+
         option_delta_vol = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
                                     sigma+delta_vol).option_price_close_formulae()
         option_option = Option_eu(self.position, self.type, self.asset, self.K, self.T, self.r,
-                                  sigma).option_price_close_formulae()
+                                  sigma-delta_vol).option_price_close_formulae()
 
-        vega = (option_delta_vol - option_option) / delta_vol
+        vega = (option_delta_vol - option_option) / (2*delta_vol)
         return vega/100
 
     def VegaRisk(self, logger=False):
@@ -413,6 +426,22 @@ class Option_eu:
         if logger:
             mylogger.logger.info('Vanna Risk done. SUCCESS.')
         return
+
+    def Skew_DF(self):
+        St = self.asset.St
+        sigma = self.get_sigma()
+        self.asset.St = self.K
+        sigma_ATM = self.get_sigma()
+        self.asset.St = St
+        return sigma - sigma_ATM
+    def SkewRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Skew Risk.")
+        Skew_Option, list_skew, range_st = self.computeGreekCurve("Skew")
+        plotGreek(self.asset.St, Skew_Option, list_skew, range_st, 'Skew')
+        if logger:
+            mylogger.logger.info("Skew Risk done. SUCCESS.")
+        return
     def Vega_convexity(self, show=True):
         Vega_Option = self.Vega_DF()
         range_vol = [x / 100 for x in range(1, 100)]
@@ -507,7 +536,7 @@ class Option_eu:
         return booking
 
 class Option_prem_gen(Option_eu):
-    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma, root=None):
+    def __init__(self, position, type, asset: (asset_BS), K, T, r, sigma):
         self.position = position
         self.type = type
         self.asset = asset

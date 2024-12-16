@@ -177,6 +177,7 @@ def find_vol_impli(option:Options.Options_class.Option_eu, target_price:float, t
     raise ValueError("Implied volatility not found within the maximum number of iterations")
 
 
+
 if __name__ == '__main__':
     # vol = Volatilite_implicite('AAPL', '2024-12-20', 'Call EU', 0.04, plot=True, isCrypto=False)
 

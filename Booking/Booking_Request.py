@@ -145,10 +145,11 @@ def run_Mtm(VI, LS, book_name=None):
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(3.31, 0, "NG=F")
+    stock = Asset_class.asset_BS(3.268, 0, "NG=F")
     # option = Options_class.Option_eu(-10, 'Call EU', stock, 2.5, 2/365, 0.1, 0.7)
-    option = Options_class.Option_eu(-10, 'Call EU', stock, 3.47, 1/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
-
+    option = Options_class.Option_eu(1, 'Call EU', stock, 3.268, 7/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
+    option.GammaRisk()
+    option.Skew_DF()
     book_name = "GasCall"
     volatilityReport()
     # book = Book_class.Book([option])

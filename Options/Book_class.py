@@ -228,12 +228,14 @@ class Book(Option_eu):
         return sum([option.Volga_DF() for option in self.basket])
 
     def display_payoff_option(self, isShow=True):
+        Purchase = sum([x.option_price_close_formulae() for x in self.basket])
+        St_init = self.asset.St
         if self.asset.St > 10:
             St = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1)
         else:
             St = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
-        payoffs = [sum(x) for x in zip(*[option.display_payoff_option(isShow=False, range=St)[1] for option in self.basket])]
-        asset_contributions = [st * self.asset.quantity for st in St] if self.asset.quantity != 0 else [0] * len(St)
+        payoffs = [sum(x) - Purchase for x in zip(*[option.display_payoff_option(isShow=False, range=St)[1] for option in self.basket])]
+        asset_contributions = [(st - St_init) * self.asset.quantity for st in St] if self.asset.quantity != 0 else [0] * len(St)
         book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
         plt.clf()
         plot_2d(St, book_payoff, "Asset price", "Payoff", isShow=isShow, title=f"Book payoff")

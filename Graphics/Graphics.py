@@ -11,7 +11,10 @@ def plot_power_correl_vsCountries(dataframe, country, loop, isShow=True):
         plt.show()
     return
 def plot_2d(x_, y_, x_axis=None, y_axis=None, isShow=True, title=None, legend=None):
-    plt.plot(x_, y_, label=title, color='blue', linestyle='-', linewidth=2)
+    if isShow:
+        plt.plot(x_, y_, label=title, linestyle='-', linewidth=2, color = 'blue',)
+    else:
+        plt.plot(x_, y_, label=title, linestyle='-', linewidth=2)
     plt.title(title)
     plt.xlabel(x_axis)
     plt.ylabel(y_axis)
