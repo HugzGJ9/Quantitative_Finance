@@ -35,9 +35,9 @@ class asset_BS():
         return 0
     def run_Booking(self, lot_size, book_name:str=None):
         if book_name:
-            booking_file_path = f'{book_name}.xlsx'
+            booking_file_path = f"../Booking/{book_name}.xlsx"
         else:
-            booking_file_path = 'Booking_history.xlsx'
+            booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
         df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
         position = 'long' if self.quantity>0 else 'short'

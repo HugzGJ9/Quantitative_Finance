@@ -41,7 +41,8 @@ class Option_eu:
     def set_volatility_surface(self):
         self.volatility_surface_df['Strike_percentage'] = self.volatility_surface_df['Strike_percentage'].replace("ATM", 0).astype(
             float)
-        self.strike = (self.volatility_surface_df['Strike_percentage'].to_numpy() + 1) * self.asset.St
+        self.strike = self.volatility_surface_df['Strike_percentage'].to_numpy()
+
         self.maturities = np.array(
             [1 / 365, 7 / 365, 30 / 365, 90 / 365, 180 / 365, 365 / 365])
         self.vol_data = self.vol_data = self.volatility_surface_df.iloc[:, 1:].to_numpy()
@@ -61,7 +62,7 @@ class Option_eu:
     def get_sigma(self):
         """Fetch volatility dynamically from the surface or use constant sigma."""
         if self.use_vol_surface:
-            self.sigma = round(float(self.volatility_interpolator((self.K, self.T))), 4)
+            self.sigma = round(float(self.volatility_interpolator((self.K / self.asset.St - 1, self.T))), 4)
             return self.sigma
         elif self.sigma is not None:
             return self.sigma
@@ -519,9 +520,9 @@ class Option_eu:
         return
     def run_Booking(self, lot_size:int=None, book_name:str=None): #lot
         if book_name:
-            booking_file_path = f"Booking/{book_name}.xlsx"
+            booking_file_path = f"../Booking/{book_name}.xlsx"
         else:
-            booking_file_path = 'Booking/Booking_history.xlsx'
+            booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
         df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
         position = 'long' if self.position>0 else 'short'
