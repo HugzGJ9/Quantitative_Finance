@@ -59,6 +59,15 @@ class Option_eu:
         plt.gca().yaxis.set_major_formatter(formatter)
         plt.show()
 
+    def show_volatility_stability(self):
+        vol = []
+        ST = self.asset.St
+        for st in range(int(ST*0.8 * 1000), int(ST*1.2 * 1000), 1):
+            self.asset.St = st/1000
+            vol.append(self.get_sigma())
+        self.asset.St = ST
+        plt.plot(vol)
+
     def get_sigma(self):
         """Fetch volatility dynamically from the surface or use constant sigma."""
         if self.use_vol_surface:
@@ -167,11 +176,15 @@ class Option_eu:
 
     def Delta_DF(self):
         delta_St = 0.001
-        self.asset.St = self.asset.St + delta_St
-        option_delta_St = self.option_price_close_formulae()
-        self.asset.St = self.asset.St - 2*delta_St
-        option_option = self.option_price_close_formulae()
-        self.asset.St = self.asset.St + delta_St
+        asset = asset_BS(self.asset.St, self.asset.quantity, self.asset.name)
+        self.get_sigma()
+        option_replica = Option_eu(self.position, self.type, asset, self.K, self.T, self.r, self.sigma)
+
+        asset.St = asset.St + delta_St
+        option_delta_St = option_replica.option_price_close_formulae()
+        asset.St = asset.St - 2*delta_St
+        option_option = option_replica.option_price_close_formulae()
+        asset.St = asset.St + delta_St
         delta = (option_delta_St - option_option)/(2*delta_St)
         return delta
     def DeltaRisk(self, logger=False):
@@ -207,7 +220,7 @@ class Option_eu:
         if self.asset.St > 10:
             range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
         else:
-            range_st = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 2 * 100), 2)]
+            range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
         asset_st = self.asset.St
         list_greek = list()
         for st in range_st:
@@ -248,17 +261,24 @@ class Option_eu:
                               zaxis_title='Option Delta'
                           ))
         fig.show()
+
     def Gamma_DF(self):
         delta_St = 0.001
-        original_St = self.asset.St
-        self.asset.St = original_St + delta_St
-        option_gamma_plus = self.option_price_close_formulae()
-        self.asset.St = original_St - delta_St
-        option_gamma_minus = self.option_price_close_formulae()
-        self.asset.St = original_St
-        option_option = self.option_price_close_formulae()
-        self.asset.St = original_St
-        gamma = (option_gamma_plus + option_gamma_minus - 2 * option_option) / (delta_St ** 2)
+        asset = asset_BS(self.asset.St, self.asset.quantity, self.asset.name)
+        self.get_sigma()
+        option_replica = Option_eu(self.position, self.type, asset, self.K, self.T, self.r, self.sigma)
+
+        original_St = asset.St
+
+        asset.St = original_St + delta_St
+        option_gamma_plus = option_replica.option_price_close_formulae()
+
+        asset.St = original_St - delta_St
+        option_gamma_minus = option_replica.option_price_close_formulae()
+
+        asset.St = original_St
+        option_option = option_replica.option_price_close_formulae()
+        gamma = (option_gamma_plus - 2 * option_option + option_gamma_minus) / (delta_St ** 2)
         return gamma
 
     def GammaRisk(self, logger=False):

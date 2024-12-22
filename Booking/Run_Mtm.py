@@ -56,8 +56,8 @@ def run_Mtm(LS, book_name=None):
         else:
             delta = datetime.datetime.now().date() - pd.to_datetime(position['date heure']).date()
             time2matu=position.maturité - delta.total_seconds() / (24 * 3600)
-            option_temp = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
-            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, option_temp.get_sigma())
+            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
+            # option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, option_temp.get_sigma())
             list_of_positions.append(option)
 
     book = Book_class.Book(list_of_positions)

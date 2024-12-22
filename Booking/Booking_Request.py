@@ -1,7 +1,5 @@
 import pandas as pd
 
-from yfinance.exceptions import YFNotImplementedError
-
 from Options import Book_class
 from Options import Options_class
 from Asset_Modeling import Asset_class
