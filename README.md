@@ -16,9 +16,11 @@ Welcome to the **Quantitative Finance Library**, a Python-based toolkit for mode
 
 ## 🚀 Demo Code
 
-Here's a demonstration of the tool in action:
+### 1. Demo script :
+- **Visualizing Trading Strategies** – This tool is perfect for users who want to visualize new trading strategies. Users can easily access the theoretical price of a book, payoff, Greek exposure (in 2D or 3D), skew, and term structure. https://youtu.be/hUNAKcM-MmM
 
-![Demo Code Example](https://github.com/user-attachments/assets/98d13de1-a7b3-488e-9a02-847eeb43d9bd)
+### 2. Booking script :
+- **Options Trading and Risk Management** – For more advanced users, this tool allows traders to save their positions and conveniently access risk metrics, making it highly useful for managing option trades. https://youtu.be/Wg5Euv6VoKg
 
 ---
 
