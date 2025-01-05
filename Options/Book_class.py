@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from Graphics.Graphics import plot_2d
+from Graphics.Graphics import plot_2d, plotPnl
 from Options.Options_class import  Option_eu, Option_prem_gen
 import copy
 import plotly.graph_objects as go
@@ -124,6 +124,8 @@ class Book(Option_eu):
                               zaxis_title='Option Gamma'
                           ))
         fig.show()
+    def Speed_DF(self):
+        return sum([option.Speed_DF() for option in self.basket])
     def Vega_DF(self):
         return sum([option.Vega_DF() for option in self.basket])
     def Vega_surface(self):
@@ -259,11 +261,8 @@ class Book(Option_eu):
                     h.position = 0
                     self.basket.remove(h)
         return
-    def pnl(self):
-        delta_pnl = self.Delta_DF() - self.book_old.Delta_DF()
-        gamma_pnl = self.Gamma_DF() - self.book_old.Gamma_DF()
-        theta_pnl = self.Theta_DF() - self.book_old.Theta_DF()
-        vega_pnl = self.Vega_DF() - self.book_old.Vega_DF()
-        asset_price_delta = self.basket[0].asset.St - self.book_old.basket[0].asset.St
-        explained_pnl = delta_pnl*asset_price_delta + 0.5*gamma_pnl*asset_price_delta**2 + theta_pnl*asset_price_delta + vega_pnl*asset_price_delta
-        return explained_pnl
+    def Third_Order_Pnl(self, isShow=True):#Pnl due to Gamma-convexity and Vomma Effect
+        tableau_pnl = sum([option.Third_Order_Pnl(isShow=False) for option in self.basket])
+        if isShow:
+            plotPnl(list(tableau_pnl), tableau_pnl.index, '3rd ORDER PNL')
+        return tableau_pnl

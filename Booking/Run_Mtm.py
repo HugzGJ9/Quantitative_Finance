@@ -95,5 +95,4 @@ def run_Mtm(LS, book_name=None):
     return
 
 if __name__ == '__main__':
-    run_Mtm(LS=10000, book_name="GasCall")
-    run_Mtm(LS=10000, book_name="Skew")
+    run_Mtm(LS=10000, book_name="BookTest")

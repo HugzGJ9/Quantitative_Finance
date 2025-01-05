@@ -67,7 +67,16 @@ def plotGreek(St, Greek_Option, list_delta, range_st, greek):
     plt.legend()
     plt.grid(True)
     plt.show()
-
+def plotPnl(list_pnl, range_st, n_order_pnl):
+    plt.plot(range_st, list_pnl, label=f'{n_order_pnl} vs Range', color='blue', linestyle='-', linewidth=2)
+    plt.plot(range_st[int(len(range_st)/2)], 0, 'x', label=f'Spot',
+             color='red', markersize=10, markeredgewidth=2)
+    plt.title(f'{n_order_pnl} of the Option vs. Underlying Asset Price')
+    plt.xlabel('Underlying Asset Price (St)')
+    plt.ylabel(f'Option {n_order_pnl}')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 if __name__ == '__main__':
     data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
 

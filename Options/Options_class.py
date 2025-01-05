@@ -3,20 +3,20 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.ticker import FuncFormatter
-
-import Asset_Modeling.Asset_class
 from Asset_Modeling.Asset_class import asset_BS
 from  Asset_Modeling.Actif_stoch_BS import simu_actif
-from Graphics.Graphics import plot_2d, plotGreek
+from Graphics.Graphics import plot_2d, plotGreek, plotPnl
 from Options.payoffs import payoff_call_eu, payoff_put_eu, payoff_call_asian, payoff_put_asian, close_formulae_call_eu, \
     close_formulae_put_eu, payoff_call_eu_barrier, close_formulae_magrabe
 import plotly.graph_objects as go
 from Logger.Logger import mylogger
 from scipy.interpolate import RegularGridInterpolator
+import os
+
 
 class Option_eu:
     #root parameter to
-    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma=None, volatility_surface_df=None, use_vol_surface=False, barrier=None, logger= False):
+    def __init__(self, position, type, asset:(asset_BS), K, T, r, sigma=None, volatility_surface_df=None, use_vol_surface=False, barrier=None, logger= False, booked_price=None):
         self.position = position
         self.asset = asset
         self.type = type
@@ -29,6 +29,7 @@ class Option_eu:
         self.volatility_surface_df = volatility_surface_df
         self.use_vol_surface = use_vol_surface
         self.volatility_interpolator = None
+        self.booked_price = booked_price
 
         if self.use_vol_surface and self.volatility_surface_df is not None:
             self.set_volatility_surface()
@@ -214,6 +215,8 @@ class Option_eu:
             Greek_DF = self.Volga_DF
         elif greek == "Skew":
             Greek_DF = self.Skew_DF
+        elif greek == "Speed":
+            Greek_DF = self.Speed_DF
         else:
             raise ValueError(f"Invalid Greek specified: {greek}")
         Greek_Option = Greek_DF()
@@ -268,17 +271,12 @@ class Option_eu:
         self.get_sigma()
         option_replica = Option_eu(self.position, self.type, asset, self.K, self.T, self.r, self.sigma)
 
-        original_St = asset.St
-
-        asset.St = original_St + delta_St
-        option_gamma_plus = option_replica.option_price_close_formulae()
-
-        asset.St = original_St - delta_St
-        option_gamma_minus = option_replica.option_price_close_formulae()
-
-        asset.St = original_St
-        option_option = option_replica.option_price_close_formulae()
-        gamma = (option_gamma_plus - 2 * option_option + option_gamma_minus) / (delta_St ** 2)
+        asset.St = asset.St + delta_St
+        option_delta_St = option_replica.Delta_DF()
+        asset.St = asset.St - 2 * delta_St
+        option_option = option_replica.Delta_DF()
+        asset.St = asset.St + delta_St
+        gamma = (option_delta_St - option_option) / (2 * delta_St)
         return gamma
 
     def GammaRisk(self, logger=False):
@@ -321,6 +319,29 @@ class Option_eu:
                               zaxis_title='Option Gamma'
                           ))
         fig.show()
+
+    def Speed_DF(self):
+        delta_St = 0.001
+        asset = asset_BS(self.asset.St, self.asset.quantity, self.asset.name)
+        self.get_sigma()
+        option_replica = Option_eu(self.position, self.type, asset, self.K, self.T, self.r, self.sigma)
+
+        asset.St = asset.St + delta_St
+        option_delta_St = option_replica.Gamma_DF()
+        asset.St = asset.St - 2 * delta_St
+        option_option = option_replica.Gamma_DF()
+        asset.St = asset.St + delta_St
+        speed = (option_delta_St - option_option) / (2 * delta_St)
+        return speed
+
+    def SpeedRisk(self, logger=False):
+        if logger:
+            mylogger.logger.info('Start Speed Risk.')
+        Speed_Option, list_speed, range_st = self.computeGreekCurve("Speed")
+        plotGreek(self.asset.St, Speed_Option, list_speed, range_st, 'Speed')
+        if logger:
+            mylogger.logger.info('Speed Risk done. SUCCESS.')
+        return
     def Vega_DF(self):
         sigma = self.get_sigma()
         delta_vol = 0.00001
@@ -463,7 +484,7 @@ class Option_eu:
         if logger:
             mylogger.logger.info("Skew Risk done. SUCCESS.")
         return
-    def Vega_convexity(self, show=True):
+    def Vega_convexity(self, isShow=True):
         Vega_Option = self.Vega_DF()
         range_vol = [x / 100 for x in range(1, 100)]
         sigma = self.get_sigma()
@@ -480,7 +501,7 @@ class Option_eu:
         plt.ylabel('Option Vega')
         plt.legend()
         plt.grid(True)
-        if show:
+        if isShow:
             plt.show()
         return
     def simu_asset(self, time):
@@ -493,11 +514,11 @@ class Option_eu:
         # range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
 
         if self.asset.St>1000:
-            range_st = range(round(self.asset.St*0.5), round(self.asset.St*1.5), 2)
+            range_st = range(round(self.asset.St*0.9), round(self.asset.St*1.1), 1)
         elif self.asset.St>10:
-            range_st = range(round(self.asset.St*0.9), round(self.asset.St*1.1), 2)
+            range_st = range(round(self.asset.St*0.9), round(self.asset.St*1.1), 1)
         else:
-            range_st = [x/100 for x in range(round((self.asset.St - 1 ) *100), round((self.asset.St + 1 ) *100), 2)]
+            range_st = [x/100 for x in range(round((self.asset.St - 1 ) *100), round((self.asset.St + 1 ) *100), 1)]
 
         asset_st = self.asset.St
         list_price = list()
@@ -526,6 +547,65 @@ class Option_eu:
         tableau_gains.index = tableau_gains['Underlying Asset Price (St) move']
         tableau_gains = tableau_gains['gains']
         return tableau_gains
+    def Delta_Pnl(self, isShow=True):
+        range_st = (
+            range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
+            if self.asset.St > 10
+            else [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
+        )
+        asset_st = self.asset.St
+        delta = self.Delta_DF()
+        delta_pnl = [(delta * (st - asset_st)) for st in range_st]
+        self.asset.St = asset_st
+        if isShow:
+            plotPnl(delta_pnl, range_st, 'Delta_PNL')
+        tableau_pnl = pd.DataFrame(zip(range_st, delta_pnl), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
+        return tableau_pnl['gains']
+    def Gamma_Pnl(self, isShow=True):
+        range_st = (
+            range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
+            if self.asset.St > 10
+            else [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
+        )
+        asset_st = self.asset.St
+        gamma = self.Gamma_DF()
+        gamma_pnl = [(0.5 * gamma * (st - asset_st) ** 2) for st in range_st]
+        self.asset.St = asset_st
+        if isShow:
+            plotPnl(gamma_pnl, range_st, 'Gamma_PNL')
+        tableau_pnl = pd.DataFrame(zip(range_st, gamma_pnl), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
+        return tableau_pnl['gains']
+    def Third_Order_Pnl(self, isShow=True):#Pnl due to Gamma-convexity and Vomma Effect
+        range_st = (
+            range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
+            if self.asset.St > 10
+            else [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
+        )
+        asset_st = self.asset.St
+        volatility = self.sigma
+        speed = self.Speed_DF()
+        vega = self.Vega_DF()
+        third_order_pnl = [
+            (1 / 6 * speed * (st - asset_st) ** 3 + 0.5 * vega * (self.get_sigma() - volatility) ** 2)
+            for st in range_st
+        ]
+        self.asset.St = asset_st
+        self.get_sigma()
+        if isShow:
+            plotPnl(third_order_pnl, range_st, '3rd Order PNL')
+        tableau_pnl = pd.DataFrame(zip(range_st, third_order_pnl),
+                                   columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
+        return tableau_pnl['gains']
+    def nOrderPnl(self):
+        first_order_pnl = self.Delta_Pnl(isShow=False)
+        second_order_pnl = self.Gamma_Pnl(isShow=False)
+        third_order_pnl = self.Third_Order_Pnl(isShow=False)
+        tableau_pnl = first_order_pnl + second_order_pnl + third_order_pnl
+        plotPnl(list(tableau_pnl), tableau_pnl.index, 'N ORDER PNL')
+        return tableau_pnl
     def RiskAnalysis(self, logger=False):
         if logger:
             mylogger.logger.info("Start Risk Analysis.")
@@ -535,6 +615,7 @@ class Option_eu:
         self.ThetaRisk(logger=logger)
         self.VannaRisk(logger=logger)
         self.VolgaRisk(logger=logger)
+        self.SpeedRisk(logger=logger)
         if logger:
             mylogger.logger.info("Risk Analysis done. SUCCESS.")
         return
@@ -544,17 +625,50 @@ class Option_eu:
         else:
             booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
-        df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+        try:
+            df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 's-p', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
-        sigma = self.get_sigma()
-        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'vol':sigma, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        quant_save = self.position
+        self.position = 1
+        sigma = self.find_vol_impli(self.booked_price)
+        self.position = quant_save
+        self.sigma = self.get_sigma()
+
+        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.booked_price * self.position * lot_size if self.booked_price is not None else -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'volatility':sigma, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
 
-        with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+        if not os.path.exists(booking_file_path):
+            mylogger.logger.warning('Booking file not found')
+            mylogger.logger.debug('Booking file creation ...')
+            with pd.ExcelWriter(booking_file_path, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+                mylogger.logger.info(f"Booking file created :{booking_file_path}")
+        else:
+            with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+                mylogger.logger.info(f"Booking file updated")
         return booking
+
+    def find_vol_impli(self, target_price: float, tol=1e-6, max_iter=100):
+        vol = self.sigma
+        vol_save = self.sigma
+        for i in range(max_iter):
+            self.sigma = vol
+            price = self.option_price_close_formulae()
+            vega = self.Vega_DF()
+            """CALIBRATION WITH NEWTON ALGORITHM"""
+            vol -= (price - target_price) / (vega * 100)
+
+            if abs(price - target_price) < tol:
+                self.sigma = vol_save
+                return vol
+
+        raise ValueError("Implied volatility not found within the maximum number of iterations")
+
 
 class Option_prem_gen(Option_eu):
     def __init__(self, position, type, asset: (asset_BS), K, T, r, sigma):

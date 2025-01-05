@@ -1,3 +1,5 @@
+import os
+
 from Asset_Modeling.Actif_stoch_BS import simu_actif
 from Graphics.Graphics import plot_2d
 import pandas as pd
@@ -39,14 +41,25 @@ class asset_BS():
         else:
             booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
-        df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+        try:
+            df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 's-p', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
         position = 'long' if self.quantity>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = 'asset'
-        booking = {'position': position, 'type':type, 'quantité':self.quantity, 'maturité':None, 'asset':self.name, 'price asset':self.St, 's-p': -self.St*lot_size*self.quantity, 'MtM': self.St*lot_size*self.quantity,'strike': None, 'vol':None, 'vol ST':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':None, 'vega':None, 'theta':None}
+        booking = {'position': position, 'type':type, 'quantité':self.quantity, 'maturité':None, 'asset':self.name, 'price asset':self.St, 's-p': -self.St*lot_size*self.quantity, 'MtM': self.St*lot_size*self.quantity,'strike': None, 'volatility':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':None, 'vega':None, 'theta':None}
         df.loc[len(df)] = booking
-        with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+        if not os.path.exists(booking_file_path):
+            mylogger.logger.warning('Booking file not found')
+            mylogger.logger.debug('Booking file creation ...')
+            with pd.ExcelWriter(booking_file_path, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+                mylogger.logger.info(f"Booking file created :{booking_file_path}")
+        else:
+            with pd.ExcelWriter(booking_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                df.to_excel(writer, sheet_name=booking_file_sheet_name, index=False)
+                mylogger.logger.info(f"Booking file updated")
         return booking
 
 if __name__ == '__main__':

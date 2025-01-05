@@ -53,12 +53,7 @@ def importBook(book_name=None):
 
 
 if __name__ == '__main__':
-    book_skew = importBook('Skew')
-    book_GasCall = importBook('GasCall')
-    pnl_skew = book_skew.PnlRisk()
-    pnl_gc = book_GasCall.PnlRisk()
-    book_skew.DeltaRisk()
-    book_GasCall.DeltaRisk()
-    # book_skew.RiskAnalysis()
-    # book_GasCall.RiskAnalysis()
+    book = importBook('BookTest')
+    pnl = book.PnlRisk()
+    book.DeltaRisk()
     print('end')

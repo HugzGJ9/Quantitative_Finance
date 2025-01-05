@@ -65,16 +65,16 @@ class Booking_Request():
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(3.62, -1, "NG=F")
-    option = Options_class.Option_eu(1, 'Call EU', stock, 3.30, 6/365, 0.1, 0.85)
-    option2 = Options_class.Option_eu(-10, 'Call EU', stock, 3.6, 6/365, 0.1, 0.83)
-    option3 = Options_class.Option_eu(1, 'Call EU', stock, 3.30, 6/365, 0.1, 0.75)
+    stock = Asset_class.asset_BS(3.913, -5, "NG=F")
+    option = Options_class.Option_eu(10, 'Call EU', stock, 3.30, 6/365, 0.1, 0.85, booked_price=0.65)
 
     book = Book_class.Book([option])
-
-    book_name = "GasCall"
-    book_name = "Skew"
+    book_name = "BookTest2"
     # volatilityReport()
 
-    booking_request = Booking_Request(stock)
-    booking_request.run_Booking(lot_size=10000, book_name=book_name)
+    # booking_request = Booking_Request(stock)
+    booking_request2 = Booking_Request(option)
+
+    # booking_request.run_Booking(lot_size=10000, book_name=book_name)
+    booking_request2.run_Booking(lot_size=10000, book_name=book_name)
+

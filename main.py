@@ -5,7 +5,7 @@ from  Asset_Modeling.Asset_class import asset_BS
 from Options.Options_class import Option_eu, Option_prem_gen
 from Options.Book_class import Book
 from Logger.Logger import mylogger
-from Volatility.Volatility import find_vol_impli
+
 SMILE = pd.read_excel('Quantitative_Finance/Volatility/Smile.xlsx', sheet_name='smile_NG')
 
 # from interest_rates import Tresury_bond_13weeks
@@ -18,8 +18,8 @@ if __name__ == '__main__':
     option1.show_volatility_surface()
     option2 = Option_eu(1, 'Call EU', stock1, 100, 6 / 365, 0.02,  volatility_surface_df=SMILE, use_vol_surface=True)
     book1 = Book([option1, option2])
-    find_vol_impli(option1, 0.427)
-    find_vol_impli(option2, 0.021)
+    option1.find_vol_impli(0.427)
+    option2.find_vol_impli(0.021)
 
     book1 = Book([option1])
     mylogger.logger.info(f"Book value = {book1.option_price_close_formulae()}")
