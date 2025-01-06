@@ -28,15 +28,18 @@ Welcome to the **Quantitative Finance Library**, a Python-based toolkit for mode
 
 This library provides a detailed breakdown of portfolio risk. Below are sample visualizations of risk metrics:
 
+### Payoff
+![image](https://github.com/user-attachments/assets/5421f593-e3c2-40ca-9bb9-244a74bb38b0)
+
 ### Delta Risk Exposure
-![Delta Risk](https://github.com/user-attachments/assets/7cf6c9cc-4741-4951-be15-0e719b4263c9)
+![image](https://github.com/user-attachments/assets/92879974-00b2-41ff-8d07-8c8b9886a0f5)
 
 ### Vega Convexity
-![image](https://github.com/user-attachments/assets/02be9ce0-67f1-41ea-8093-e4032d2fda39)
+![image](https://github.com/user-attachments/assets/ba038935-4c4c-480c-945d-37a51fa52fce)
 
 ### Pnl Price Exposure
 
-![image](https://github.com/user-attachments/assets/94a13926-a622-41f1-b062-ae56411f80b7)
+![image](https://github.com/user-attachments/assets/692ced67-f981-4b83-815a-790db06d665c)
 
 ---
 
