@@ -53,7 +53,7 @@ class Option_eu:
     def show_volatility_surface(self):
         columns = self.volatility_surface_df.columns
         for i in range(1, len(columns)):
-            plot_2d(self.volatility_surface_df['Strike_percentage'], self.volatility_surface_df[columns[i]], 'STRIKE %', 'Volatility', isShow=False, legend=list(columns[1:]))
+            plot_2d(self.volatility_surface_df['Strike_percentage'], self.volatility_surface_df[columns[i]], 'STRIKE %', 'Volatility', plot=False, legend=list(columns[1:]))
         plt.plot(self.K / self.asset.St - 1, self.get_sigma(), 'x', label=f'Option sigma',
                  color='red', markersize=10, markeredgewidth=2)
         formatter = FuncFormatter(lambda y, _: f'{y * 100:.0f}%')
@@ -97,7 +97,7 @@ class Option_eu:
         elif self.type == "Put EU":
             payoff = payoff_put_eu(ST, self.K) * self.position
         return payoff
-    def display_payoff_option(self, isShow=True, range=None):
+    def display_payoff_option(self, plot=True, range=None):
         if range is not None:
             ST = range
         else:
@@ -109,7 +109,7 @@ class Option_eu:
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=isShow, title=f"{self.type} payoff")
+        plot_2d(ST, payoffs, "Asset price", "Payoff", plot=plot, title=f"{self.type} payoff")
         return [ST, payoffs]
     def option_price_mc(self, Nmc=1000):
         prix_option = 0
@@ -188,11 +188,13 @@ class Option_eu:
         asset.St = asset.St + delta_St
         delta = (option_delta_St - option_option)/(2*delta_St)
         return delta
-    def DeltaRisk(self, logger=False):
+
+    def DeltaRisk(self, logger=False, plot=True):
         if logger:
             mylogger.logger.info("Start Delta Risk.")
         Delta_Option, list_delta, range_st = self.computeGreekCurve("Delta")
-        plotGreek(self.asset.St, Delta_Option, list_delta, range_st, 'Delta')
+        if plot:
+            plotGreek(self.asset.St, Delta_Option, list_delta, range_st, 'Delta')
         tableau_delta = pd.DataFrame(zip(range_st, list_delta), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_delta.index = tableau_delta['Underlying Asset Price (St) move']
         tableau_delta = tableau_delta['gains']
@@ -279,14 +281,18 @@ class Option_eu:
         gamma = (option_delta_St - option_option) / (2 * delta_St)
         return gamma
 
-    def GammaRisk(self, logger=False):
+    def GammaRisk(self, logger=False, plot=True):
         if logger:
             mylogger.logger.info("Start Gamma Risk.")
         Gamma_Option, list_gamma, range_st = self.computeGreekCurve('Gamma')
-        plotGreek(self.asset.St, Gamma_Option, list_gamma, range_st, 'Gamma')
+        if plot:
+            plotGreek(self.asset.St, Gamma_Option, list_gamma, range_st, 'Gamma')
+        tableau_gamma = pd.DataFrame(zip(range_st, list_gamma), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_gamma.index = tableau_gamma['Underlying Asset Price (St) move']
+        tableau_gamma = tableau_gamma['gains']
         if logger:
             mylogger.logger.info("Gamma Risk done. SUCCESS.")
-        return
+        return tableau_gamma
 
     def Gamma_surface(self):
         if self.asset.St > 10:
@@ -334,14 +340,18 @@ class Option_eu:
         speed = (option_delta_St - option_option) / (2 * delta_St)
         return speed
 
-    def SpeedRisk(self, logger=False):
+    def SpeedRisk(self, logger=False, plot=True):
         if logger:
-            mylogger.logger.info('Start Speed Risk.')
+            mylogger.logger.info("Start Speed Risk.")
         Speed_Option, list_speed, range_st = self.computeGreekCurve("Speed")
-        plotGreek(self.asset.St, Speed_Option, list_speed, range_st, 'Speed')
+        if plot:
+            plotGreek(self.asset.St, Speed_Option, list_speed, range_st, 'Speed')
+        tableau_speed = pd.DataFrame(zip(range_st, list_speed), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_speed.index = tableau_speed['Underlying Asset Price (St) move']
+        tableau_speed = tableau_speed['gains']
         if logger:
-            mylogger.logger.info('Speed Risk done. SUCCESS.')
-        return
+            mylogger.logger.info("Speed Risk done. SUCCESS.")
+        return tableau_speed
     def Vega_DF(self):
         sigma = self.get_sigma()
         delta_vol = 0.00001
@@ -354,14 +364,18 @@ class Option_eu:
         vega = (option_delta_vol - option_option) / (2*delta_vol)
         return vega/100
 
-    def VegaRisk(self, logger=False):
+    def VegaRisk(self, logger=False, plot=True):
         if logger:
             mylogger.logger.info("Start Vega Risk.")
         Vega_Option, list_vega, range_st = self.computeGreekCurve("Vega")
-        plotGreek(self.asset.St, Vega_Option, list_vega, range_st, 'Vega')
+        if plot:
+            plotGreek(self.asset.St, Vega_Option, list_vega, range_st, 'Vega')
+        tableau_vega = pd.DataFrame(zip(range_st, list_vega), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_vega.index = tableau_vega['Underlying Asset Price (St) move']
+        tableau_vega = tableau_vega['gains']
         if logger:
             mylogger.logger.info("Vega Risk done. SUCCESS.")
-        return
+        return tableau_vega
     def Vega_surface(self):
         option_matu = self.T
         list_vega = []
@@ -394,14 +408,19 @@ class Option_eu:
         option_option = self.option_price_close_formulae()
         theta = (option_delta_t - option_option) / delta_t
         return theta/365
-    def ThetaRisk(self, logger=False ):
+
+    def ThetaRisk(self, logger=False, plot=True):
         if logger:
             mylogger.logger.info("Start Theta Risk.")
         Theta_Option, list_theta, range_st = self.computeGreekCurve("Theta")
-        plotGreek(self.asset.St, Theta_Option, list_theta, range_st, 'Theta')
+        if plot:
+            plotGreek(self.asset.St, Theta_Option, list_theta, range_st, 'Theta')
+        tableau_theta = pd.DataFrame(zip(range_st, list_theta), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_theta.index = tableau_theta['Underlying Asset Price (St) move']
+        tableau_theta = tableau_theta['gains']
         if logger:
             mylogger.logger.info("Theta Risk done. SUCCESS.")
-        return
+        return tableau_theta
 
     def Theta_surface(self):
         if self.asset.St > 10:
@@ -443,14 +462,19 @@ class Option_eu:
                                   sigma).Vega_DF()
         volga = (option_delta_vol - option_option) / delta_vol
         return volga
-    def VolgaRisk(self, logger=False):
+
+    def VolgaRisk(self, logger=False, plot=True):
         if logger:
             mylogger.logger.info("Start Volga Risk.")
         Volga_Option, list_volga, range_st = self.computeGreekCurve("Volga")
-        plotGreek(self.asset.St, Volga_Option, list_volga, range_st, 'Volga')
+        if plot:
+            plotGreek(self.asset.St, Volga_Option, list_volga, range_st, 'Volga')
+        tableau_volga = pd.DataFrame(zip(range_st, list_volga), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_volga.index = tableau_volga['Underlying Asset Price (St) move']
+        tableau_volga = tableau_volga['gains']
         if logger:
-            mylogger.logger.info("Theta Risk done. SUCCESS.")
-        return
+            mylogger.logger.info("Volga Risk done. SUCCESS.")
+        return tableau_volga
     def Vanna_DF(self):
         delta_St = 0.00001
         self.asset.St = self.asset.St + delta_St
@@ -459,15 +483,19 @@ class Option_eu:
         option_option = self.Vega_DF()
         vanna = (option_delta_vol - option_option) / delta_St
         return vanna
-    
-    def VannaRisk(self, logger=False):
+
+    def VannaRisk(self, logger=False, plot=True):
         if logger:
-            mylogger.logger.info('Start Vanna Risk.')
+            mylogger.logger.info("Start Vanna Risk.")
         Vanna_Option, list_vanna, range_st = self.computeGreekCurve("Vanna")
-        plotGreek(self.asset.St, Vanna_Option, list_vanna, range_st, 'Vanna')
+        if plot:
+            plotGreek(self.asset.St, Vanna_Option, list_vanna, range_st, 'Vanna')
+        tableau_vanna = pd.DataFrame(zip(range_st, list_vanna), columns=['Underlying Asset Price (St) move', 'gains'])
+        tableau_vanna.index = tableau_vanna['Underlying Asset Price (St) move']
+        tableau_vanna = tableau_vanna['gains']
         if logger:
-            mylogger.logger.info('Vanna Risk done. SUCCESS.')
-        return
+            mylogger.logger.info("Vanna Risk done. SUCCESS.")
+        return tableau_vanna
 
     def Skew_DF(self):
         St = self.asset.St
@@ -484,7 +512,7 @@ class Option_eu:
         if logger:
             mylogger.logger.info("Skew Risk done. SUCCESS.")
         return
-    def Vega_convexity(self, isShow=True):
+    def Vega_convexity(self, plot=True):
         Vega_Option = self.Vega_DF()
         range_vol = [x / 100 for x in range(1, 100)]
         sigma = self.get_sigma()
@@ -501,7 +529,7 @@ class Option_eu:
         plt.ylabel('Option Vega')
         plt.legend()
         plt.grid(True)
-        if isShow:
+        if plot:
             plt.show()
         return
     def simu_asset(self, time):
@@ -509,7 +537,7 @@ class Option_eu:
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365
 
-    def PnlRisk(self):
+    def PnlRisk(self, plot=True):
         Price_Option = self.option_price_close_formulae()
         # range_st = np.arange(self.asset.St-3, self.asset.St+3, 0.1)
 
@@ -526,28 +554,21 @@ class Option_eu:
             self.asset.St = st
             list_price.append(self.option_price_close_formulae() - Price_Option)
         self.asset.St = asset_st
-        plt.plot(range_st, list_price, label='Price vs Range', color='blue', linestyle='-', linewidth=2)
-        plt.plot(self.asset.St, 0, 'x', label='Option Price at Specific Points',
-                 color='red', markersize=10, markeredgewidth=2)
-
-        # Adding titles and labels
-        plt.title('Price of the Option vs. Underlying Asset Price')
-        plt.xlabel('Underlying Asset Price (St)')
-        plt.ylabel('Option Price')
-
-        # Adding a legend
-        plt.legend()
-
-        # Adding grid for better readability
-        plt.grid(True)
-
-        # Displaying the plot
-        plt.show()
+        if plot:
+            plt.plot(range_st, list_price, label='Price vs Range', color='blue', linestyle='-', linewidth=2)
+            plt.plot(self.asset.St, 0, 'x', label='Option Price at Specific Points',
+                     color='red', markersize=10, markeredgewidth=2)
+            plt.title('Price of the Option vs. Underlying Asset Price')
+            plt.xlabel('Underlying Asset Price (St)')
+            plt.ylabel('Option Price')
+            plt.legend()
+            plt.grid(True)
+            plt.show()
         tableau_gains = pd.DataFrame(zip(range_st, list_price), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_gains.index = tableau_gains['Underlying Asset Price (St) move']
         tableau_gains = tableau_gains['gains']
         return tableau_gains
-    def Delta_Pnl(self, isShow=True):
+    def Delta_Pnl(self, plot=True):
         range_st = (
             range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
             if self.asset.St > 10
@@ -557,12 +578,12 @@ class Option_eu:
         delta = self.Delta_DF()
         delta_pnl = [(delta * (st - asset_st)) for st in range_st]
         self.asset.St = asset_st
-        if isShow:
+        if plot:
             plotPnl(delta_pnl, range_st, 'Delta_PNL')
         tableau_pnl = pd.DataFrame(zip(range_st, delta_pnl), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
         return tableau_pnl['gains']
-    def Gamma_Pnl(self, isShow=True):
+    def Gamma_Pnl(self, plot=True):
         range_st = (
             range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
             if self.asset.St > 10
@@ -572,12 +593,12 @@ class Option_eu:
         gamma = self.Gamma_DF()
         gamma_pnl = [(0.5 * gamma * (st - asset_st) ** 2) for st in range_st]
         self.asset.St = asset_st
-        if isShow:
+        if plot:
             plotPnl(gamma_pnl, range_st, 'Gamma_PNL')
         tableau_pnl = pd.DataFrame(zip(range_st, gamma_pnl), columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
         return tableau_pnl['gains']
-    def Third_Order_Pnl(self, isShow=True):#Pnl due to Gamma-convexity and Vomma Effect
+    def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect
         range_st = (
             range(round(self.asset.St * 0.9), round(self.asset.St * 1.1), 1)
             if self.asset.St > 10
@@ -593,18 +614,19 @@ class Option_eu:
         ]
         self.asset.St = asset_st
         self.get_sigma()
-        if isShow:
+        if plot:
             plotPnl(third_order_pnl, range_st, '3rd Order PNL')
         tableau_pnl = pd.DataFrame(zip(range_st, third_order_pnl),
                                    columns=['Underlying Asset Price (St) move', 'gains'])
         tableau_pnl.set_index('Underlying Asset Price (St) move', inplace=True)
         return tableau_pnl['gains']
-    def nOrderPnl(self):
-        first_order_pnl = self.Delta_Pnl(isShow=False)
-        second_order_pnl = self.Gamma_Pnl(isShow=False)
-        third_order_pnl = self.Third_Order_Pnl(isShow=False)
+    def nOrderPnl(self, plot=True):
+        first_order_pnl = self.Delta_Pnl(plot=False)
+        second_order_pnl = self.Gamma_Pnl(plot=False)
+        third_order_pnl = self.Third_Order_Pnl(plot=False)
         tableau_pnl = first_order_pnl + second_order_pnl + third_order_pnl
-        plotPnl(list(tableau_pnl), tableau_pnl.index, 'N ORDER PNL')
+        if plot:
+            plotPnl(list(tableau_pnl), tableau_pnl.index, 'N ORDER PNL')
         return tableau_pnl
     def RiskAnalysis(self, logger=False):
         if logger:
@@ -724,14 +746,16 @@ class Option_prem_gen(Option_eu):
                 payoff.append(max(option.K - ST, 0) * option.position)
         payoff_final = sum(payoff)
         return payoff_final
-    def display_payoff_option(self):
+    def display_payoff_option(self, plot=True):
         start = min(self.K)*0.5
         end = max(self.K) * 1.5
         ST = list(range(round(start), round(end)))
         payoffs = []
         for i in ST:
             payoffs.append(self.get_payoff_option(i))
-        plot_2d(ST, payoffs, "Asset price", "Payoff", isShow=True, title=f"{self.type} payoff")
+        if plot:
+            plot_2d(ST, payoffs, "Asset price", "Payoff", plot=True, title=f"{self.type} payoff")
+        return (ST, payoffs)
 
     def option_price_close_formulae(self):
         price_basket_options = 0

@@ -26,7 +26,7 @@ class asset_BS():
         self.St = self.history[-1]
         self.t = self.t + T / 365
     def plot(self):
-        plot_2d(list(range(len(self.history))), self.history, title='Asset Price Path', x_axis='t', y_axis='asset price', isShow=True)
+        plot_2d(list(range(len(self.history))), self.history, title='Asset Price Path', x_axis='t', y_axis='asset price', plot=True)
     def Delta_DF(self):
         return 1*self.quantity
     def Gamma_DF(self):

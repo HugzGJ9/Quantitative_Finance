@@ -229,18 +229,18 @@ class Book(Option_eu):
     def Volga_DF(self):
         return sum([option.Volga_DF() for option in self.basket])
 
-    def display_payoff_option(self, isShow=True):
+    def display_payoff_option(self, plot=True):
         Purchase = sum([x.option_price_close_formulae() for x in self.basket])
         St_init = self.asset.St
         if self.asset.St > 10:
             St = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1)
         else:
             St = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
-        payoffs = [sum(x) - Purchase for x in zip(*[option.display_payoff_option(isShow=False, range=St)[1] for option in self.basket])]
+        payoffs = [sum(x) - Purchase for x in zip(*[option.display_payoff_option(plot=False, range=St)[1] for option in self.basket])]
         asset_contributions = [(st - St_init) * self.asset.quantity for st in St] if self.asset.quantity != 0 else [0] * len(St)
         book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
         plt.clf()
-        plot_2d(St, book_payoff, "Asset price", "Payoff", isShow=isShow, title=f"Book payoff")
+        plot_2d(St, book_payoff, "Asset price", "Payoff", plot=plot, title=f"Book payoff")
         return
     def simu_asset(self, time):
         self.book_old = copy.deepcopy(self)
@@ -261,8 +261,8 @@ class Book(Option_eu):
                     h.position = 0
                     self.basket.remove(h)
         return
-    def Third_Order_Pnl(self, isShow=True):#Pnl due to Gamma-convexity and Vomma Effect
-        tableau_pnl = sum([option.Third_Order_Pnl(isShow=False) for option in self.basket])
-        if isShow:
+    def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect
+        tableau_pnl = sum([option.Third_Order_Pnl(plot=False) for option in self.basket])
+        if plot:
             plotPnl(list(tableau_pnl), tableau_pnl.index, '3rd ORDER PNL')
         return tableau_pnl

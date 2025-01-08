@@ -83,7 +83,7 @@ def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, i
                     print("Maximum iterations reached.")
                     break
 
-    plot_2d(strikes, vol_implicite, 'Strike', 'Implied volatility', isShow=plot, title='Volatility smile')
+    plot_2d(strikes, vol_implicite, 'Strike', 'Implied volatility', plot=plot, title='Volatility smile')
     result = dict(zip(strikes, vol_implicite))
     return result
 
