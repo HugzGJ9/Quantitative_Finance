@@ -223,7 +223,7 @@ class Option_eu:
             raise ValueError(f"Invalid Greek specified: {greek}")
         Greek_Option = Greek_DF()
         if self.asset.St > 10:
-            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
+            range_st = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1)
         else:
             range_st = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
         asset_st = self.asset.St
