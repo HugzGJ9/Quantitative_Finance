@@ -46,7 +46,7 @@ class Book(Option_eu):
 
     def option_price_close_formulae(self):
         return sum([option.option_price_close_formulae() if isinstance(option, (Option_eu, Option_prem_gen)) else 0 for option in self.basket]) + self.asset.quantity*self.asset.St
-    def get_payoff_option(self, ST:int):#to correct
+    def get_payoff_option(self, ST:int):
         payoff = 0
         for option in self.basket:
             payoff+=option.get_payoff_option(ST)
@@ -230,18 +230,17 @@ class Book(Option_eu):
         return sum([option.Volga_DF() for option in self.basket])
 
     def display_payoff_option(self, plot=True):
-        Purchase = sum([x.option_price_close_formulae() for x in self.basket])
         St_init = self.asset.St
         if self.asset.St > 10:
-            St = range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1)
+            ST = list(range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1))
         else:
-            St = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
-        payoffs = [sum(x) - Purchase for x in zip(*[option.display_payoff_option(plot=False, range=St)[1] for option in self.basket])]
-        asset_contributions = [(st - St_init) * self.asset.quantity for st in St] if self.asset.quantity != 0 else [0] * len(St)
+            ST = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
+        payoffs = [sum(x) for x in zip(*[option.display_payoff_option(plot=False, asset_range=ST)[1] for option in self.basket])]
+        asset_contributions = [(st - St_init) * self.asset.quantity for st in ST] if self.asset.quantity != 0 else [0] * len(ST)
         book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
         plt.clf()
-        plot_2d(St, book_payoff, "Asset price", "Payoff", plot=plot, title=f"Book payoff")
-        return
+        plot_2d(ST, book_payoff, "Asset price", "Payoff", plot=plot, title=f"Book payoff")
+        return [ST, payoffs]
     def simu_asset(self, time):
         self.book_old = copy.deepcopy(self)
         list_asset = list(set([x.asset for x in self.basket]))

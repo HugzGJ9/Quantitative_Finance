@@ -91,18 +91,18 @@ class Option_eu:
         self.t = days/365
         return
     def get_payoff_option(self, ST:int)->int:
-
+        Purchase = self.option_price_close_formulae()
         if self.type == "Call EU":
-            payoff = payoff_call_eu(ST, self.K) * self.position
+            payoff = payoff_call_eu(ST, self.K) * self.position - Purchase
         elif self.type == "Put EU":
-            payoff = payoff_put_eu(ST, self.K) * self.position
+            payoff = payoff_put_eu(ST, self.K) * self.position - Purchase
         return payoff
-    def display_payoff_option(self, plot=True, range=None):
-        if range is not None:
-            ST = range
+    def display_payoff_option(self, plot=True, asset_range=None):
+        if asset_range is not None:
+            ST = asset_range
         else:
             if self.K>10:
-                ST = range(round(self.K*0.5), round(self.K*1.5), 2)
+                ST = list(range(round(self.K*0.5), round(self.K*1.5), 2))
             else:
                 ST = [x/100 for x in range(round(self.K*0.5*100), round(self.K*3*100), 2)]
 
@@ -739,14 +739,17 @@ class Option_prem_gen(Option_eu):
         return
     def get_payoff_option(self, ST:int)->int:
         payoff = []
+        Purchase = self.option_price_close_formulae()
+
         for option in self.options:
             if option.type == "Call EU":
-                payoff.append(max(ST-option.K, 0) * option.position)
+                payoff.append(max(ST-option.K, 0) * option.position - Purchase)
             elif option.type == "Put EU":
-                payoff.append(max(option.K - ST, 0) * option.position)
+                payoff.append(max(option.K - ST, 0) * option.position - Purchase)
         payoff_final = sum(payoff)
         return payoff_final
     def display_payoff_option(self, plot=True):
+        p
         start = min(self.K)*0.5
         end = max(self.K) * 1.5
         ST = list(range(round(start), round(end)))
@@ -755,7 +758,7 @@ class Option_prem_gen(Option_eu):
             payoffs.append(self.get_payoff_option(i))
         if plot:
             plot_2d(ST, payoffs, "Asset price", "Payoff", plot=True, title=f"{self.type} payoff")
-        return (ST, payoffs)
+        return [list(ST), payoffs]
 
     def option_price_close_formulae(self):
         price_basket_options = 0

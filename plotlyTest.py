@@ -12,13 +12,13 @@ from Options.Options_class import Option_eu
 # Simulated Asset and Option Instances
 stock = asset_BS(100, 0, "AAPL")
 option = Option_eu(10, 'Call EU', stock, 100, 30 / 365, 0.05, 0.25)
-option2 = Option_eu(-10, 'Call EU', stock, 100.1, 5 / 365, 0.05, 0.25)
+option2 = Option_eu(-10, 'Call EU', stock, 100.1, 30 / 365, 0.05, 0.25)
 
 book = Book([option, option2])
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
 
-# Layout
+# 1. Add a new payoff chart area in the layout
 app.layout = dbc.Container([
     html.H1("Option Trading Dashboard", className='text-center mb-5',
             style={'font-size': '3em', 'font-weight': 'bold'}),
@@ -34,7 +34,13 @@ app.layout = dbc.Container([
             )
         ], width=6)
     ], className='mb-4'),
-
+# 2. Add the new payoff graph
+    html.Div([
+        html.H3("Payoff", className='text-center mt-5'),
+        dbc.Row([
+            dbc.Col(dcc.Graph(id='payoff-graph'), width=6)
+        ])
+    ]),
     html.H3("Greeks", className='text-center mt-4'),
     dbc.Row(id='greek-kpi-display', className='mb-5'),
 
@@ -92,6 +98,8 @@ app.layout = dbc.Container([
             dbc.Col(dcc.Graph(id='third-order-pnl-graph'), width=6)
         ])
     ])
+
+
 ], fluid=True)
 
 
@@ -106,18 +114,18 @@ def create_kpi_card(title, value, color):
         style={'border-radius': '10px'}
     )
 
-# Plotting Function for Greeks
-
-def plot_greek(greek_method, price, current_greek, title):
-    curve = greek_method(plot=False)
+# Helper Plotting Function for Greeks
+def plot_method(method, price, current_value, title):
+    curve = method(plot=False)
     range_st = curve.index
 
     fig = go.Figure(data=go.Scatter(x=range_st, y=curve, mode='lines', name=f'{title} Curve'))
-    fig.add_trace(go.Scatter(x=[price], y=[current_greek],
+    fig.add_trace(go.Scatter(x=[price], y=[current_value],
                              mode='markers', line=dict(dash='dash', color="red"), name=f'Current {title}'))
     fig.update_layout(title=f'{title} Curve', xaxis_title='Underlying Price', yaxis_title=title)
     return fig
 
+# 3. Extend your callback outputs and logic to include the payoff graph
 @app.callback(
     [Output('delta-graph', 'figure'),
      Output('gamma-graph', 'figure'),
@@ -131,51 +139,71 @@ def plot_greek(greek_method, price, current_greek, title):
      Output('gamma-pnl-graph', 'figure'),
      Output('third-order-pnl-graph', 'figure'),
      Output('greek-kpi-display', 'children'),
-     Output('pnl-kpi-display', 'children')],
+     Output('pnl-kpi-display', 'children'),
+     Output('payoff-graph', 'figure')],  # <-- NEW OUTPUT for payoff plot
     [Input('option-selector', 'value'),
      Input('price-slider', 'value'),
      Input('vol-slider', 'value')]
 )
 def update_graphs(selected_option, price, vol):
+    # Decide if user selected the entire book or a single option
     if selected_option == 'book':
-        option = book
+        selected_position = book
     else:
-        option = book.basket[selected_option]
+        selected_position = book.basket[selected_option]
 
-    option.asset.St = price
-    option.sigma = vol
+    # Update price and volatility
+    selected_position.asset.St = price
+    selected_position.sigma = vol
 
     # Greeks (KPI values)
-    current_delta = option.Delta_DF()
-    current_gamma = option.Gamma_DF()
-    current_vega = option.Vega_DF()
-    current_theta = option.Theta_DF()
-    current_vanna = option.Vanna_DF()
-    current_volga = option.Volga_DF()
-    current_speed = option.Speed_DF()
+    current_delta = selected_position.Delta_DF()
+    current_gamma = selected_position.Gamma_DF()
+    current_vega = selected_position.Vega_DF()
+    current_theta = selected_position.Theta_DF()
+    current_vanna = selected_position.Vanna_DF()
+    current_volga = selected_position.Volga_DF()
+    current_speed = selected_position.Speed_DF()
 
     # PnL Breakdown
-    delta_pnl = option.Delta_Pnl(plot=False).loc[price]
-    gamma_pnl = option.Gamma_Pnl(plot=False).loc[price]
-    third_order_pnl = option.Third_Order_Pnl(plot=False).loc[price]
-    n_order_pnl = option.nOrderPnl(plot=False).loc[price]
+    delta_pnl = selected_position.Delta_Pnl(plot=False).loc[price]
+    gamma_pnl = selected_position.Gamma_Pnl(plot=False).loc[price]
+    third_order_pnl = selected_position.Third_Order_Pnl(plot=False).loc[price]
+    n_order_pnl = selected_position.nOrderPnl(plot=False).loc[price]
+
     # Generate Greek Graphs
-    delta_fig = plot_greek(option.DeltaRisk, price, current_delta, 'Delta')
-    gamma_fig = plot_greek(option.GammaRisk, price, current_gamma, 'Gamma')
-    vega_fig = plot_greek(option.VegaRisk, price, current_vega, 'Vega')
-    theta_fig = plot_greek(option.ThetaRisk, price, current_theta, 'Theta')
+    delta_fig = plot_method(selected_position.DeltaRisk, price, current_delta, 'Delta')
+    gamma_fig = plot_method(selected_position.GammaRisk, price, current_gamma, 'Gamma')
+    vega_fig = plot_method(selected_position.VegaRisk, price, current_vega, 'Vega')
+    theta_fig = plot_method(selected_position.ThetaRisk, price, current_theta, 'Theta')
+    vanna_fig = plot_method(selected_position.VannaRisk, price, current_vanna, 'Vanna')
+    volga_fig = plot_method(selected_position.VolgaRisk, price, current_volga, 'Volga')
+    speed_fig = plot_method(selected_position.SpeedRisk, price, current_speed, 'Speed')
 
-    vanna_fig = plot_greek(option.VannaRisk, price, current_vanna, 'Vanna')
-    volga_fig = plot_greek(option.VolgaRisk, price, current_volga, 'Volga')
-    speed_fig = plot_greek(option.SpeedRisk, price, current_speed, 'Speed')
-
-    pnl_curve = option.PnlRisk(plot=False)
+    # PnL Curve
+    pnl_curve = selected_position.PnlRisk(plot=False)
     pnl_fig = go.Figure(data=go.Scatter(x=pnl_curve.index, y=pnl_curve.values, mode='lines', name='PnL Curve'))
     pnl_fig.update_layout(title='PnL Curve', xaxis_title='Underlying Price', yaxis_title='PnL')
 
-    delta_pnl_fig = plot_greek(option.Delta_Pnl, price, delta_pnl, 'Delta PnL')
-    gamma_pnl_fig = plot_greek(option.Gamma_Pnl, price, gamma_pnl, 'Gamma PnL')
-    third_order_pnl_fig = plot_greek(option.Third_Order_Pnl, price, third_order_pnl, '3rd Order PnL')
+    delta_pnl_fig = plot_method(selected_position.Delta_Pnl, price, delta_pnl, 'Delta PnL')
+    gamma_pnl_fig = plot_method(selected_position.Gamma_Pnl, price, gamma_pnl, 'Gamma PnL')
+    third_order_pnl_fig = plot_method(selected_position.Third_Order_Pnl, price, third_order_pnl, '3rd Order PnL')
+
+    # 4. Build the payoff figure
+    #    display_payoff_option(plot=False) returns [ST, payoffs]
+    ST, payoffs = selected_position.display_payoff_option(plot=False)
+    payoff_fig = go.Figure(data=go.Scatter(x=ST, y=payoffs, mode='lines', name='Payoff'))
+    payoff_fig.update_layout(title='Payoff', xaxis_title='Underlying Price', yaxis_title='Payoff')
+
+    # Mark the current payoff based on the updated price
+    current_payoff = selected_position.get_payoff_option(price)
+    payoff_fig.add_trace(go.Scatter(
+        x=[price],
+        y=[current_payoff],
+        mode='markers',
+        name='Current Payoff',
+        marker=dict(color='red', size=8)
+    ))
 
     # Create KPI Display for Greeks
     greek_display = dbc.Row([
@@ -196,11 +224,12 @@ def update_graphs(selected_option, price, vol):
         dbc.Col(create_kpi_card("N-Order PnL", n_order_pnl, "goldenrod"), width=3)
     ])
 
+    # 5. Return the new payoff_fig last (to match the added Output)
     return (delta_fig, gamma_fig, vega_fig, theta_fig,
             vanna_fig, volga_fig, speed_fig, pnl_fig,
             delta_pnl_fig, gamma_pnl_fig, third_order_pnl_fig,
-            greek_display, pnl_display)
+            greek_display, pnl_display, payoff_fig)
+
+
 if __name__ == '__main__':
     app.run_server(debug=True)
-
-
