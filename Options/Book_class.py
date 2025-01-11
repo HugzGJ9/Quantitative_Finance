@@ -238,7 +238,8 @@ class Book(Option_eu):
         payoffs = [sum(x) for x in zip(*[option.display_payoff_option(plot=False, asset_range=ST)[1] for option in self.basket])]
         asset_contributions = [(st - St_init) * self.asset.quantity for st in ST] if self.asset.quantity != 0 else [0] * len(ST)
         book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
-        plt.clf()
+        if plot:
+            plt.clf()
         plot_2d(ST, book_payoff, "Asset price", "Payoff", plot=plot, title=f"Book payoff")
         return [ST, payoffs]
     def simu_asset(self, time):
@@ -260,6 +261,7 @@ class Book(Option_eu):
                     h.position = 0
                     self.basket.remove(h)
         return
+
     def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect
         tableau_pnl = sum([option.Third_Order_Pnl(plot=False) for option in self.basket])
         if plot:

@@ -7,7 +7,6 @@ from Logger.Logger import mylogger
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-SMILE = pd.read_excel('../Volatility/Smile.xlsx', sheet_name='smile_NG')
 
 class Booking_Request():
     def __init__(self, Book: Book_class.Book = None, Option: Options_class.Option_eu = None,
@@ -65,7 +64,7 @@ class Booking_Request():
 
 if __name__ == '__main__':
 
-    stock = Asset_class.asset_BS(3.913, -5, "NG=F")
+    stock = Asset_class.asset_BS(3.913, 0, "NG=F")
     option = Options_class.Option_eu(10, 'Call EU', stock, 3.30, 6/365, 0.1, 0.85, booked_price=0.65)
 
     book = Book_class.Book([option])

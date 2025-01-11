@@ -9,7 +9,7 @@ from Options import Options_class, Book_class
 import warnings
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-SMILE = pd.read_excel('../Volatility/Smile.xlsx', sheet_name='smile_NG')
+from Volatility.Volatility import SMILE
 
 def importBook(book_name=None):
     booking_file_path = f"../Booking/{book_name}.xlsx"
@@ -25,7 +25,7 @@ def importBook(book_name=None):
     ng2_ticker = asset_ticker
     try:
         ng2_data = yf.Ticker(ng2_ticker)
-        ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
+        ng2_price = ng2_data.history(period='2d')['Close'].iloc[0]
     except IndexError as e:
         mylogger.logger.critical(f"Error: {e}. Ticker used not found.")
         ng2_price = df['asset price'].unique()[0]

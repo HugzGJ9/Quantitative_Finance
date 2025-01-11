@@ -643,24 +643,33 @@ class Option_eu:
         return
     def run_Booking(self, lot_size:int=None, book_name:str=None): #lot
         if book_name:
-            booking_file_path = f"../Booking/{book_name}.xlsx"
+            if os.path.basename(os.getcwd()) == 'Quantitative_Finance':
+                booking_file_path = f"Booking/{book_name}.xlsx"
+            else:
+                booking_file_path = f"../Booking/{book_name}.xlsx"
         else:
-            booking_file_path = '../Booking/Booking_history.xlsx'
+            if os.path.basename(os.getcwd()) == 'Quantitative_Finance':
+                booking_file_path = f"Booking/Booking_history.xlsx"
+            else:
+                booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
         try:
             df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
         except FileNotFoundError:
-            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 's-p', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
+            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 'SP', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
         position = 'long' if self.position>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = self.type
         quant_save = self.position
         self.position = 1
-        sigma = self.find_vol_impli(self.booked_price)
+        try:
+            sigma = self.find_vol_impli(self.booked_price)
+        except TypeError:
+            sigma = self.sigma
         self.position = quant_save
         self.sigma = self.get_sigma()
 
-        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 's-p': -self.booked_price * self.position * lot_size if self.booked_price is not None else -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'volatility':sigma, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
+        booking = {'position': position, 'type':type, 'quantité':self.position, 'maturité':self.T*365, 'asset':self.asset.name, 'price asset':self.asset.St, 'SP': -self.booked_price * self.position * lot_size if self.booked_price is not None else -self.option_price_close_formulae() * lot_size, 'MtM': self.option_price_close_formulae() * lot_size, 'strike': self.K, 'moneyness %': (self.asset.St / self.K - 1) * 100, 'volatility':sigma, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':self.Gamma_DF(), 'vega':self.Vega_DF(), 'theta':self.Theta_DF()}
         df.loc[len(df)] = booking
 
         if not os.path.exists(booking_file_path):
@@ -690,6 +699,24 @@ class Option_eu:
                 return vol
 
         raise ValueError("Implied volatility not found within the maximum number of iterations")
+
+    def shift_vol_surface(self, shift: float):
+        """
+        Shift the entire implied vol surface by 'shift' absolute points.
+        If your surface ranges from e.g. 0.2 to 0.5 IV, adding +0.05
+        shifts them all to 0.25 -> 0.55.
+        """
+        if not self.use_vol_surface or self.volatility_surface_df is None:
+            return  # no-op or raise an exception if you prefer
+
+        # Shift the columns that contain vol data by 'shift'
+        # Here we assume your DF columns with volatility are from column index 1 onwards
+        vol_cols = self.volatility_surface_df.columns[1:]
+        for col in vol_cols:
+            self.volatility_surface_df[col] += shift
+
+        # Re-initialize the interpolator with updated vol_data
+        self.set_volatility_surface()
 
 
 class Option_prem_gen(Option_eu):

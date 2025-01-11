@@ -5,8 +5,7 @@ from  Asset_Modeling.Asset_class import asset_BS
 from Options.Options_class import Option_eu, Option_prem_gen
 from Options.Book_class import Book
 from Logger.Logger import mylogger
-
-SMILE = pd.read_excel('Quantitative_Finance/Volatility/Smile.xlsx', sheet_name='smile_NG')
+from Volatility.Volatility import SMILE
 
 # from interest_rates import Tresury_bond_13weeks
 # from interest_rates import Tresury_bond_5years

@@ -37,18 +37,24 @@ class asset_BS():
         return 0
     def run_Booking(self, lot_size, book_name:str=None):
         if book_name:
-            booking_file_path = f"../Booking/{book_name}.xlsx"
+            if os.path.basename(os.getcwd()) == 'Quantitative_Finance':
+                booking_file_path = f"Booking/{book_name}.xlsx"
+            else:
+                booking_file_path = f"../Booking/{book_name}.xlsx"
         else:
-            booking_file_path = '../Booking/Booking_history.xlsx'
+            if os.path.basename(os.getcwd()) == 'Quantitative_Finance':
+                booking_file_path = f"Booking/Booking_history.xlsx"
+            else:
+                booking_file_path = '../Booking/Booking_history.xlsx'
         booking_file_sheet_name = 'histo_order'
         try:
             df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
         except FileNotFoundError:
-            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 's-p', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
+            df = pd.DataFrame(columns=['position', 'type', 'quantité', 'maturité', 'asset', 'price asset', 'SP', 'MtM','strike', 'volatility', 'date heure', 'delta', 'gamma', 'vega', 'theta'])
         position = 'long' if self.quantity>0 else 'short'
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         type = 'asset'
-        booking = {'position': position, 'type':type, 'quantité':self.quantity, 'maturité':None, 'asset':self.name, 'price asset':self.St, 's-p': -self.St*lot_size*self.quantity, 'MtM': self.St*lot_size*self.quantity,'strike': None, 'volatility':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':None, 'vega':None, 'theta':None}
+        booking = {'position': position, 'type':type, 'quantité':self.quantity, 'maturité':None, 'asset':self.name, 'price asset':self.St, 'SP': -self.St*lot_size*self.quantity, 'MtM': self.St*lot_size*self.quantity,'strike': None, 'volatility':None, 'date heure':date, 'delta':self.Delta_DF(), 'gamma':None, 'vega':None, 'theta':None}
         df.loc[len(df)] = booking
         if not os.path.exists(booking_file_path):
             mylogger.logger.warning('Booking file not found')

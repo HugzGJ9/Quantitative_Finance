@@ -10,8 +10,12 @@ from Graphics.Graphics import plot_2d, correl_plot
 import os
 import matplotlib.pyplot as plt
 
-os.chdir('..')
-
+# os.chdir('..')
+try:
+    SMILE = pd.read_excel('Volatility/Smile.xlsx', sheet_name='smile_NG')
+except FileNotFoundError:
+    os.chdir('..')
+    SMILE = pd.read_excel('Volatility/Smile.xlsx', sheet_name='smile_NG')
 def Volatilite_implicite(stock_name, maturity_date, option_type, r, plot=True, isCrypto=False):
     t = 0
     epsilon = 0.0001
