@@ -1,4 +1,5 @@
 import datetime
+import os
 
 import pandas as pd
 import yfinance as yf
@@ -12,11 +13,36 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 from Volatility.Volatility import SMILE
 
 def importBook(book_name=None):
-    booking_file_path = f"../Booking/{book_name}.xlsx"
+
+    if not book_name:
+        mylogger.logger.critical("No book_name provided to importBook.")
+        book = Book_class.Book([])
+        return book
+
+    if os.path.basename(os.getcwd()) == 'Quantitative_Finance':
+        booking_file_path = f"Booking/Book_Files/{book_name}.xlsx"
+    else:
+        booking_file_path = f"../Booking/Book_Files/{book_name}.xlsx"
 
     booking_file_sheet_name = 'MtM'
 
-    df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+    try:
+        df = pd.read_excel(booking_file_path, sheet_name=booking_file_sheet_name)
+    except FileNotFoundError:
+        mylogger.logger.warning(f"Sheet '{booking_file_sheet_name}' not found or file missing. Returning empty Book.")
+        book = Book_class.Book([])
+        return book
+    except Exception as e:
+        mylogger.logger.critical(f"Error reading {booking_file_path}: {e}")
+        mylogger.logger.critical("Returning empty Book.")
+        book = Book_class.Book([])
+        return book
+
+    if df.empty:
+        mylogger.logger.info(f"'MtM' sheet in {book_name}.xlsx is empty. Returning empty Book.")
+        book = Book_class.Book([])
+        return book
+
     if not len(df['asset'].dropna().unique()) == 1:
         mylogger.logger.critical('Multiple assets within the book.')
         return
@@ -25,7 +51,7 @@ def importBook(book_name=None):
     ng2_ticker = asset_ticker
     try:
         ng2_data = yf.Ticker(ng2_ticker)
-        ng2_price = ng2_data.history(period='2d')['Close'].iloc[0]
+        ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
     except IndexError as e:
         mylogger.logger.critical(f"Error: {e}. Ticker used not found.")
         ng2_price = df['asset price'].unique()[0]

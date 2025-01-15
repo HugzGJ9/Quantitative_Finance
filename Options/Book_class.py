@@ -10,7 +10,7 @@ class Book(Option_eu):
     def __init__(self, options_basket:list, name:str=None, logger=False)->None:
         self.name = name
         self.basket = options_basket
-        self.asset = self.basket[0].asset
+        self.asset = self.basket[0].asset if self.basket else None
         # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
         self.book_old = None
         if logger:
@@ -50,8 +50,6 @@ class Book(Option_eu):
         payoff = 0
         for option in self.basket:
             payoff+=option.get_payoff_option(ST)
-        if self.asset:
-            payoff += ST*self.asset.quantity
         return payoff
 
     def Delta_DF(self):
@@ -232,9 +230,9 @@ class Book(Option_eu):
     def display_payoff_option(self, plot=True):
         St_init = self.asset.St
         if self.asset.St > 10:
-            ST = list(range(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 1))
+            ST = list(range(round(self.asset.St * 0.8), round(self.asset.St * 1.2), 1))
         else:
-            ST = [x / 100 for x in range(round(self.asset.St * 0.5 * 100), round(self.asset.St * 3 * 100), 1)]
+            ST = [x / 100 for x in range(round(self.asset.St * 0.8 * 100), round(self.asset.St * 1.2 * 100), 1)]
         payoffs = [sum(x) for x in zip(*[option.display_payoff_option(plot=False, asset_range=ST)[1] for option in self.basket])]
         asset_contributions = [(st - St_init) * self.asset.quantity for st in ST] if self.asset.quantity != 0 else [0] * len(ST)
         book_payoff = [sum(x) for x in zip(*[payoffs, asset_contributions])]
@@ -260,6 +258,8 @@ class Book(Option_eu):
                     i.position += h.position
                     h.position = 0
                     self.basket.remove(h)
+            if i.position == 0:
+                self.basket.remove(i)
         return
 
     def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect

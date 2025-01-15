@@ -30,7 +30,7 @@ def runDemoVolSurface():
 
     stock1 = asset_BS(100, 0)
     option1 = Option_eu(position=100, type='Call EU', asset=stock1, K=100, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
-    option2 = Option_eu(position=-100, type='Call EU', asset=stock1, K=100.01, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
+    option2 = Option_eu(position=-100, type='Call EU', asset=stock1, K=105, T=3 / 365, r=0.02, volatility_surface_df=SMILE, use_vol_surface=True)
 
     book1 = Book([option1, option2], logger=True)
 

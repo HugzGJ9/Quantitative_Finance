@@ -24,7 +24,7 @@ def run_Mtm(LS, book_name=None):
 
     mylogger.logger.info(f"Lot size = {LS}.xlsx")
 
-    booking_file_path = f"Booking/{book_name}.xlsx"
+    booking_file_path = f"Booking/Book_Files/{book_name}.xlsx"
 
     booking_file_sheet_name = 'histo_order'
 
@@ -37,7 +37,7 @@ def run_Mtm(LS, book_name=None):
     ng2_ticker = asset_ticker
     try:
         ng2_data = yf.Ticker(ng2_ticker)
-        ng2_price = ng2_data.history(period='2d')['Close'].iloc[0]
+        ng2_price = ng2_data.history(period='1d')['Close'].iloc[0]
     except IndexError as e:
         mylogger.logger.critical(f"Error: {e}. Ticker used not found.")
         mylogger.logger.critical(f"End Mark to Market.")
@@ -91,7 +91,7 @@ def run_Mtm(LS, book_name=None):
 
     mylogger.logger.info("\n%s", MtM.to_string())
     mylogger.logger.debug(f"End Mark to Market.")
-    return
+    return MtM
 
 if __name__ == '__main__':
     run_Mtm(LS=10000, book_name="BookTest")
