@@ -1,12 +1,12 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
-from Graphics.Graphics import plot_2d, plotPnl
+from Graphics.Graphics import plot_2d, plotPnl, plotGreek
 from Options.Options_class import  Option_eu, Option_prem_gen
 import copy
 import plotly.graph_objects as go
 from Logger.Logger import mylogger
-class Book(Option_eu):
+class Book():
     def __init__(self, options_basket:list, name:str=None, logger=False)->None:
         self.name = name
         self.basket = options_basket
@@ -31,7 +31,6 @@ class Book(Option_eu):
         if logger:
             mylogger.logger.info('Delta hedging done. SUCCESS.')
         return
-
     def get_move_deltahedge(self):
         st = self.asset.St
         move = []
@@ -51,10 +50,43 @@ class Book(Option_eu):
         for option in self.basket:
             payoff+=option.get_payoff_option(ST)
         return payoff
-
+    def GreekRisk(self, greek, logger=False, plot=True):
+        if greek == "Delta":
+            GreekDF = self.Delta_DF
+            GreekRisk = Option_eu.DeltaRisk
+        elif greek == "Gamma":
+            GreekDF = self.Gamma_DF
+            GreekRisk = Option_eu.GammaRisk
+        elif greek == "Theta":
+            GreekDF = self.Theta_DF
+            GreekRisk = Option_eu.ThetaRisk
+        elif greek == "Vega":
+            GreekDF = self.Vega_DF
+            GreekRisk = Option_eu.VegaRisk
+        elif greek == "Vanna":
+            GreekDF = self.Vanna_DF
+            GreekRisk = Option_eu.VannaRisk
+        elif greek == "Volga":
+            GreekDF = self.Volga_DF
+            GreekRisk = Option_eu.VolgaRisk
+        elif greek == "Speed":
+            GreekDF = self.Speed_DF
+            GreekRisk = Option_eu.SpeedRisk
+        else:
+            raise ValueError(f"Invalid Greek specified: {greek}")
+        hedge = self.asset.quantity if self.asset != None else 0
+        Greek_Book = GreekDF() + hedge
+        GreekRisk_df = sum([GreekRisk(option, plot=False) + hedge for option in self.basket])
+        if plot:
+            plotGreek(self.asset.St, Greek_Book, GreekRisk_df['value'], GreekRisk_df.index, greek)
+        return GreekRisk_df
     def Delta_DF(self):
         hedge = self.asset.quantity if self.asset != None else 0
         return sum([option.Delta_DF() for option in self.basket]) + hedge
+    def DeltaRisk(self, logger=False, plot=True):
+        greek = "Delta"
+        DeltaRisk_df = self.GreekRisk(greek, logger, plot)
+        return DeltaRisk_df
     def Delta_surface(self):
         if self.asset.St > 10:
             range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 0.5)
@@ -90,6 +122,11 @@ class Book(Option_eu):
         fig.show()
     def Gamma_DF(self):
         return sum([option.Gamma_DF() for option in self.basket])
+
+    def GammaRisk(self, logger=False, plot=True):
+        greek = "Gamma"
+        GammaRisk_df = self.GreekRisk(greek, logger, plot)
+        return GammaRisk_df
     def Gamma_surface(self):
         if self.asset.St > 10:
             range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
@@ -124,8 +161,16 @@ class Book(Option_eu):
         fig.show()
     def Speed_DF(self):
         return sum([option.Speed_DF() for option in self.basket])
+    def SpeedRisk(self, logger=False, plot=True):
+        greek = "Speed"
+        SpeedRisk_df = self.GreekRisk(greek, logger, plot)
+        return SpeedRisk_df
     def Vega_DF(self):
         return sum([option.Vega_DF() for option in self.basket])
+    def VegaRisk(self, logger=False, plot=True):
+        greek = "Vega"
+        VegaRisk_df = self.GreekRisk(greek, logger, plot)
+        return VegaRisk_df
     def Vega_surface(self):
         vol_option = max([option.sigma for option in self.basket])
         option_matu = [option.T for option in self.basket]
@@ -155,6 +200,10 @@ class Book(Option_eu):
         fig.show()
     def Theta_DF(self):
         return sum([option.Theta_DF() for option in self.basket])
+    def ThetaRisk(self, logger=False, plot=True):
+        greek = "Theta"
+        ThetaRisk_df = self.GreekRisk(greek, logger, plot)
+        return ThetaRisk_df
     def Theta_surface(self):
         if self.asset.St > 10:
             range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
@@ -190,7 +239,10 @@ class Book(Option_eu):
 
     def Vanna_DF(self):
         return sum([option.Vanna_DF() for option in self.basket])
-
+    def VannaRisk(self, logger=False, plot=True):
+        greek = "Vanna"
+        VannaRisk_df = self.GreekRisk(greek, logger, plot)
+        return VannaRisk_df
     def Vanna_surface(self):
         if self.asset.St > 10:
             range_st = np.arange(round(self.asset.St * 0.5), round(self.asset.St * 1.5), 2)
@@ -226,7 +278,24 @@ class Book(Option_eu):
 
     def Volga_DF(self):
         return sum([option.Volga_DF() for option in self.basket])
+    def VolgaRisk(self, logger=False, plot=True):
+        greek = "Volga"
+        VolgaRisk_df = self.GreekRisk(greek, logger, plot)
+        return VolgaRisk_df
 
+    def RiskAnalysis(self, logger=False):
+        if logger:
+            mylogger.logger.info("Start Risk Analysis.")
+        self.DeltaRisk(logger=logger)
+        self.GammaRisk(logger=logger)
+        self.VegaRisk(logger=logger)
+        self.ThetaRisk(logger=logger)
+        self.VannaRisk(logger=logger)
+        self.VolgaRisk(logger=logger)
+        self.SpeedRisk(logger=logger)
+        if logger:
+            mylogger.logger.info("Risk Analysis done. SUCCESS.")
+        return
     def display_payoff_option(self, plot=True):
         St_init = self.asset.St
         if self.asset.St > 10:
@@ -261,9 +330,32 @@ class Book(Option_eu):
             if i.position == 0:
                 self.basket.remove(i)
         return
-
-    def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect
-        tableau_pnl = sum([option.Third_Order_Pnl(plot=False) for option in self.basket])
+    def PnlRisk(self, plot=True):
+        hedge = self.asset.quantity if self.asset != None else 0
+        PnlRisk_df = sum([option.PnlRisk(plot=False) + hedge for option in self.basket])
         if plot:
-            plotPnl(list(tableau_pnl), tableau_pnl.index, '3rd ORDER PNL')
+            plotGreek(self.asset.St, 0, PnlRisk_df['value'], PnlRisk_df.index, "Pnl")
+        return PnlRisk_df
+    def Delta_Pnl(self, plot=True):
+        PnlRisk_df = sum([option.Delta_Pnl(plot=False) for option in self.basket])
+        if plot:
+            plotPnl(list(PnlRisk_df['value']), PnlRisk_df.index, 'DELTA PNL')
+        return PnlRisk_df
+    def Gamma_Pnl(self, plot=True):
+        PnlRisk_df = sum([option.Gamma_Pnl(plot=False) for option in self.basket])
+        if plot:
+            plotPnl(list(PnlRisk_df['value']), PnlRisk_df.index, 'GAMMA PNL')
+        return PnlRisk_df
+    def Third_Order_Pnl(self, plot=True):#Pnl due to Gamma-convexity and Vomma Effect
+        PnlRisk_df = sum([option.Third_Order_Pnl(plot=False) for option in self.basket])
+        if plot:
+            plotPnl(list(PnlRisk_df['value']), PnlRisk_df.index, '3rd ORDER PNL')
+        return PnlRisk_df
+    def nOrderPnl(self, plot=True):
+        first_order_pnl = self.Delta_Pnl(plot=False)
+        second_order_pnl = self.Gamma_Pnl(plot=False)
+        third_order_pnl = self.Third_Order_Pnl(plot=False)
+        tableau_pnl = first_order_pnl + second_order_pnl + third_order_pnl
+        if plot:
+            plotPnl(list(tableau_pnl['value']), tableau_pnl.index, 'N ORDER PNL')
         return tableau_pnl

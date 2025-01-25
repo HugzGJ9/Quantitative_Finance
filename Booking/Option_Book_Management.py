@@ -10,7 +10,7 @@ from Options import Options_class, Book_class
 import warnings
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-from Volatility.Volatility import SMILE
+from Volatility.Volatility_surface import Vol_surface
 
 def importBook(book_name=None):
 
@@ -68,7 +68,7 @@ def importBook(book_name=None):
             asset.quantity = position.quantity
         else:
             time2matu = round(position['time to maturity'])
-            option = Options_class.Option_eu(position.quantity, position.type, asset, position.strike, time2matu/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
+            option = Options_class.Option_eu(position.quantity, position.type, asset, position.strike, time2matu / 365, 0.1, volatility_surface_df=Vol_surface, use_vol_surface=True)
             # option = Options_class.Option_eu(-position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, option_temp.get_sigma())
             list_of_positions.append(option)
 

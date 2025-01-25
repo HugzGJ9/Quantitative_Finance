@@ -8,11 +8,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 from Logger.Logger import mylogger
 from Booking.Option_Book_Management import importBook
-from Booking.Run_Mtm import run_Mtm
-from Volatility.Volatility import SMILE
-from Asset_Modeling.Asset_class import asset_BS
-from Options.Options_class import Option_eu
-from Booking.Booking_Request import Booking_Request
+
 
 BOOK_FILES_PATH = os.path.join('Booking', 'Book_Files')
 cache_duration = datetime.timedelta(minutes=5)
@@ -26,7 +22,7 @@ def get_available_books():
 
 def load_book(book_name=None, smile_df=None):
     try:
-        run_Mtm(LS=10000, book_name=book_name)
+        # run_Mtm(LS=10000, book_name=book_name)
         book = importBook(book_name=book_name)
         if book is None:
             mylogger.logger.critical("importBook returned None.")
@@ -73,8 +69,8 @@ def plot_method(method, price, current_value, title):
             values = curve.values
         elif isinstance(curve, pd.DataFrame):
             curve = curve.copy()
-            range_st = curve['Underlying Asset Price (St) move'].astype(float)
-            values = curve['gains'].values
+            range_st = curve.index
+            values = curve['value'].values
         else:
             return go.Figure().update_layout(title=f"No data for {title}")
         fig = go.Figure(data=go.Scatter(x=range_st, y=values, mode='lines', name=f'{title} Curve'))

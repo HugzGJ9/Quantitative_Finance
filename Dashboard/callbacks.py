@@ -5,12 +5,15 @@ from dash import Input, Output, State, ALL, html
 import dash_bootstrap_components as dbc
 import pandas as pd
 from Logger.Logger import mylogger
-from Volatility.Volatility import SMILE
+from Volatility.Volatility_surface import Vol_surface
 from .utils import (
-    load_book, get_available_books, run_Mtm, shift_vol_surface, safe_loc,
-    create_kpi_card, plot_method, asset_BS, Option_eu, Booking_Request
+    load_book, get_available_books , shift_vol_surface, safe_loc,
+    create_kpi_card, plot_method
 )
-
+from Booking.Run_Mtm import run_Mtm
+from Asset_Modeling.Asset_class import asset_BS
+from Options.Options_class import Option_eu
+from Booking.Booking_Request import Booking_Request
 def register_callbacks(app):
     @app.callback(
         Output('empty-book-alert', 'children'),
@@ -19,7 +22,7 @@ def register_callbacks(app):
     def handle_empty_book(current_book_name):
         if not current_book_name:
             return dbc.Alert("No book selected.", color="warning")
-        book_obj = load_book(current_book_name, smile_df=SMILE)
+        book_obj = load_book(current_book_name, smile_df=Vol_surface)
         if not book_obj:
             return dbc.Alert("Book could not be loaded.", color="danger")
         if not book_obj.basket:
@@ -60,7 +63,7 @@ def register_callbacks(app):
             return [], [], dbc.Alert("No book selected.", color="warning")
 
         # Try loading the book
-        current_book = load_book(current_book_name, smile_df=SMILE)
+        current_book = load_book(current_book_name, smile_df=Vol_surface)
 
         # If no book or empty book, return a placeholder
         if not current_book or not current_book.basket:
@@ -120,7 +123,7 @@ def register_callbacks(app):
     def update_vol_sliders_container(selected_option, current_book_name):
         if not current_book_name:
             return dbc.Alert("No book selected.", color="warning")
-        current_book = load_book(current_book_name, smile_df=SMILE)
+        current_book = load_book(current_book_name, smile_df=Vol_surface)
         if not current_book or not current_book.basket:
             return dbc.Alert("No options in the book. Add a trade first.", color="info")
 
@@ -188,7 +191,7 @@ def register_callbacks(app):
     )
     def update_current_book(selected_book):
         if selected_book:
-            new_book = load_book(selected_book, smile_df=SMILE)
+            new_book = load_book(selected_book, smile_df=Vol_surface)
             if new_book is None:
                 mylogger.logger.critical(f"Failed to load book: {selected_book}")
             return selected_book
@@ -210,7 +213,7 @@ def register_callbacks(app):
     def update_option_selector_and_slider(current_book_name):
         if not current_book_name:
             return [], None, 80, 120, 0.1, 100, {}, ''
-        current_book = load_book(current_book_name, smile_df=SMILE)
+        current_book = load_book(current_book_name, smile_df=Vol_surface)
         if not current_book:
             return [], None, 80, 120, 0.1, 100, {}, ''
         option_options = [{'label': 'Book (All)', 'value': 'book'}]
@@ -274,7 +277,7 @@ def register_callbacks(app):
             empty_kpi = html.Div("Book is empty", style={"color": "lightgray", "textAlign": "center"})
             return [empty_fig] * 7 + [empty_fig] * 4 + [empty_kpi, empty_kpi, empty_fig]
 
-        current_book = load_book(current_book_name, smile_df=SMILE)
+        current_book = load_book(current_book_name, smile_df=Vol_surface)
 
         # Check if the book is empty
         if not current_book or not current_book.basket:
@@ -352,7 +355,7 @@ def register_callbacks(app):
 
         # 5) PnL
         try:
-            pnl_curve = selection.PnlRisk(plot=False)
+            pnl_curve = safe_loc(selection.PnlRisk(plot=False), price)
             delta_pnl = safe_loc(selection.Delta_Pnl(plot=False), price)
             gamma_pnl = safe_loc(selection.Gamma_Pnl(plot=False), price)
             third_order_pnl = safe_loc(selection.Third_Order_Pnl(plot=False), price)
@@ -365,9 +368,10 @@ def register_callbacks(app):
             third_order_pnl = 0
             n_order_pnl = 0
 
-        pnl_fig = go.Figure(data=go.Scatter(x=pnl_curve.index, y=pnl_curve.values, mode='lines', name='PnL'))
-        pnl_fig.update_layout(title='PnL Curve', xaxis_title='Underlying Price', yaxis_title='PnL',
-                              template='plotly_dark')
+        # pnl_fig = go.Figure(data=go.Scatter(x=pnl_curve.index, y=pnl_curve.values, mode='lines', name='PnL'))
+        # pnl_fig.update_layout(title='PnL Curve', xaxis_title='Underlying Price', yaxis_title='PnL',
+        #                       template='plotly_dark')
+        pnl_fig = plot_method(selection.PnlRisk, price, pnl_curve, 'PnL')
         delta_pnl_fig = plot_method(selection.Delta_Pnl, price, delta_pnl, 'Delta PnL')
         gamma_pnl_fig = plot_method(selection.Gamma_Pnl, price, gamma_pnl, 'Gamma PnL')
         third_order_pnl_fig = plot_method(selection.Third_Order_Pnl, price, third_order_pnl, '3rd Order PnL')
@@ -433,7 +437,7 @@ def register_callbacks(app):
                        maturity_days, quantity, booked_price, volatility, current_book_name):
         if not current_book_name:
             return dbc.Alert("No book selected.", color="danger")
-        current_book = load_book(current_book_name, smile_df=SMILE)
+        current_book = load_book(current_book_name, smile_df=Vol_surface)
         if not current_book:
             return dbc.Alert("Book could not be loaded.", color="danger")
         if not all([position, trade_type, asset_name, strike, maturity_days, quantity, booked_price, volatility]):
@@ -479,7 +483,7 @@ def register_callbacks(app):
                     K=strike,
                     T=T,
                     r=0.1,
-                    volatility_surface_df=SMILE,
+                    volatility_surface_df=Vol_surface,
                     use_vol_surface=True,
                     booked_price=booked_price
                 )

@@ -6,7 +6,7 @@ import yfinance as yf
 from Asset_Modeling import Asset_class
 from Logger.Logger import mylogger
 from Options import Options_class, Book_class
-from Volatility.Volatility import SMILE
+from Volatility.Volatility_surface import Vol_surface
 import os
 
 
@@ -55,7 +55,7 @@ def run_Mtm(LS, book_name=None):
         else:
             delta = datetime.datetime.now().date() - pd.to_datetime(position['date heure']).date()
             time2matu=position.maturité - delta.total_seconds() / (24 * 3600)
-            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, volatility_surface_df=SMILE, use_vol_surface=True)
+            option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu / 365, 0.1, volatility_surface_df=Vol_surface, use_vol_surface=True)
             # option = Options_class.Option_eu(position.quantité, position.type, asset, position.strike, time2matu/365, 0.1, option_temp.get_sigma())
             list_of_positions.append(option)
 
