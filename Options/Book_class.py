@@ -16,9 +16,11 @@ class Book():
         if logger:
             mylogger.logger.info(f"Book has been intiated : Basket of options= {options_basket}")
         return
-    def append(self, option:(Option_eu, Option_prem_gen))->None:
+
+    def append(self, option: (Option_eu, Option_prem_gen)) -> None:
+        if self.asset and option.asset != self.asset:
+            raise ValueError(f"Cannot add option with asset {option.asset} to book of {self.asset}")
         self.basket.append(option)
-        return
 
     def delta_hedge(self, logger=False):
         if logger:
@@ -51,29 +53,18 @@ class Book():
             payoff+=option.get_payoff_option(ST)
         return payoff
     def GreekRisk(self, greek, logger=False, plot=True):
-        if greek == "Delta":
-            GreekDF = self.Delta_DF
-            GreekRisk = Option_eu.DeltaRisk
-        elif greek == "Gamma":
-            GreekDF = self.Gamma_DF
-            GreekRisk = Option_eu.GammaRisk
-        elif greek == "Theta":
-            GreekDF = self.Theta_DF
-            GreekRisk = Option_eu.ThetaRisk
-        elif greek == "Vega":
-            GreekDF = self.Vega_DF
-            GreekRisk = Option_eu.VegaRisk
-        elif greek == "Vanna":
-            GreekDF = self.Vanna_DF
-            GreekRisk = Option_eu.VannaRisk
-        elif greek == "Volga":
-            GreekDF = self.Volga_DF
-            GreekRisk = Option_eu.VolgaRisk
-        elif greek == "Speed":
-            GreekDF = self.Speed_DF
-            GreekRisk = Option_eu.SpeedRisk
-        else:
+        greek_map = {
+            "Delta": (self.Delta_DF, Option_eu.DeltaRisk),
+            "Gamma": (self.Gamma_DF, Option_eu.GammaRisk),
+            "Theta": (self.Theta_DF, Option_eu.ThetaRisk),
+            "Vega": (self.Vega_DF, Option_eu.VegaRisk),
+            "Vanna": (self.Vanna_DF, Option_eu.VannaRisk),
+            "Volga": (self.Volga_DF, Option_eu.VolgaRisk),
+            "Speed": (self.Speed_DF, Option_eu.SpeedRisk),
+        }
+        if greek not in greek_map:
             raise ValueError(f"Invalid Greek specified: {greek}")
+        GreekDF, GreekRisk = greek_map[greek]
         hedge = self.asset.quantity if self.asset != None else 0
         Greek_Book = GreekDF() + hedge
         GreekRisk_df = sum([GreekRisk(option, plot=False) + hedge for option in self.basket])
@@ -310,7 +301,7 @@ class Book():
         plot_2d(ST, book_payoff, "Asset price", "Payoff", plot=plot, title=f"Book payoff")
         return [ST, payoffs]
     def simu_asset(self, time):
-        self.book_old = copy.deepcopy(self)
+        self.book_old = {option: option.T for option in self.basket}
         list_asset = list(set([x.asset for x in self.basket]))
         for item in list_asset:
             item.simu_asset(time)
@@ -318,18 +309,9 @@ class Book():
             option.update_t(time)
         return
     def clean_basket(self):
-
-        for i in self.basket:
-            for h in self.basket:
-                if h == i:
-                    continue
-                elif i.type == h.type and i.asset == h.asset and i.T == h.T and i.K == h.K:
-                    i.position += h.position
-                    h.position = 0
-                    self.basket.remove(h)
-            if i.position == 0:
-                self.basket.remove(i)
-        return
+        self.basket = [
+            i for i in self.basket if i.position != 0
+        ]
     def PnlRisk(self, plot=True):
         hedge = self.asset.quantity if self.asset != None else 0
         PnlRisk_df = sum([option.PnlRisk(plot=False) + hedge for option in self.basket])
@@ -352,10 +334,9 @@ class Book():
             plotPnl(list(PnlRisk_df['value']), PnlRisk_df.index, '3rd ORDER PNL')
         return PnlRisk_df
     def nOrderPnl(self, plot=True):
-        first_order_pnl = self.Delta_Pnl(plot=False)
-        second_order_pnl = self.Gamma_Pnl(plot=False)
-        third_order_pnl = self.Third_Order_Pnl(plot=False)
-        tableau_pnl = first_order_pnl + second_order_pnl + third_order_pnl
+        tableau_pnl = sum(
+            pnl_func(plot=False) for pnl_func in [self.Delta_Pnl, self.Gamma_Pnl, self.Third_Order_Pnl]
+        )
         if plot:
             plotPnl(list(tableau_pnl['value']), tableau_pnl.index, 'N ORDER PNL')
         return tableau_pnl
