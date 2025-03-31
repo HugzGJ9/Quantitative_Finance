@@ -85,6 +85,14 @@ Volatility surfaces integrate skew and term structure, required for OTM option t
 
 ![image](https://github.com/user-attachments/assets/b876d322-39fc-418f-8bab-6ae6fce3206f)
 
+**DashBoard - Risk exposure management & Booking** (IN PROGRESS...)
+
+![image](https://github.com/user-attachments/assets/8f4de29e-f407-4d4b-9a49-6016aaa12716)
+
+![image](https://github.com/user-attachments/assets/ccbd6d94-3f43-4a81-bf54-c4e80360c190)
+
+![image](https://github.com/user-attachments/assets/4d8cb77f-9014-4be8-bef9-b4304a8c5072)
+
 ---
 
 ## :zap: Subprojects
