@@ -77,6 +77,23 @@ def plotPnl(list_pnl, range_st, n_order_pnl):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def plot_multiple_lists(*price_paths):
+        n = len(price_paths)
+        fig, axes = plt.subplots(1, n, figsize=(6 * n, 5))
+        if n == 1:
+            axes = [axes]
+
+        for ax, paths, idx in zip(axes, price_paths, range(n)):
+            for path in paths:
+                ax.plot(path)
+            ax.set_title(f'Price Paths Plot {idx + 1}')
+            ax.set_xlabel('Time Steps')
+            ax.set_ylabel('Price')
+            ax.grid(True)
+
+        plt.tight_layout()
+        plt.show()
 if __name__ == '__main__':
     data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
 

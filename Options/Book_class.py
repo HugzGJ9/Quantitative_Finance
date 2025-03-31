@@ -13,6 +13,8 @@ class Book():
         self.asset = self.basket[0].asset if self.basket else None
         # self.asset = list(set(option.asset for option in self.basket)) multi assets book - may not be a nice idea
         self.book_old = None
+        self.prices = []
+        self.deltas = []
         if logger:
             mylogger.logger.info(f"Book has been intiated : Basket of options= {options_basket}")
         return
@@ -21,6 +23,13 @@ class Book():
         if self.asset and option.asset != self.asset:
             raise ValueError(f"Cannot add option with asset {option.asset} to book of {self.asset}")
         self.basket.append(option)
+
+    def set_t(self, time):
+        for option in self.basket:
+            option.t = time
+    def update_t(self, time_shift):
+        for option in self.basket:
+            option.t = option.t + time_shift
 
     def delta_hedge(self, logger=False):
         if logger:
@@ -307,6 +316,11 @@ class Book():
             item.simu_asset(time)
         for option in self.basket:
             option.update_t(time)
+        path = self.asset.history
+        for i in path:
+            self.asset.St = i
+            self.prices.append(self.option_price_close_formulae())
+            self.deltas.append(self.Delta_DF())
         return
     def clean_basket(self):
         self.basket = [

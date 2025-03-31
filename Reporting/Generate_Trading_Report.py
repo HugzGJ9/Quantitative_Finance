@@ -107,7 +107,7 @@ def compute_volatility_metrics(df_daily, df_1h, df_15m, end_date):
                   (df_1h['Date'] < (end_date - pd.Timedelta(days=x)))]['Close'].to_list(),
             5 / 365
         )
-        for x in range(0, 30, 7)
+        for x in range(0, 37, 7)
     ]
 
     vol_metrics['vol_daily'] = [
@@ -116,7 +116,7 @@ def compute_volatility_metrics(df_daily, df_1h, df_15m, end_date):
                   (df_1h['Date'] < (end_date - pd.Timedelta(days=x)))]['Close'].to_list(),
             1 / 365
         )
-        for x in range(0, 30)
+        for x in range(0, 37)
     ]
 
     vol_metrics['vol_intraday_hourly'] = [
@@ -162,4 +162,4 @@ def main(ticker):
     generate_html_report(df, [kpis, kpis_vol], generate_insights(df), *figures, ticker=ticker)
 
 if __name__ == "__main__":
-    main("GLE.PA")
+    main("ESE.PA")

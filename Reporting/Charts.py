@@ -57,9 +57,9 @@ def create_plotly_charts(df, df_1h, df_15m, vol_weekly, vol_daily, vol_intraday_
         xaxis=dict(tickformat='%Y-%m-%d'),
     )
     threshold_date = pd.to_datetime(df_15m['Date'].iloc[-1]).normalize()  # strips time
-    df_15minID = df_15m[df_15m['Date'] > threshold_date]
+    df_15minID = df_15m[df_15m['Date'] > (threshold_date - pd.Timedelta(days=1))]
     fig_candlestickID = go.Figure(data=[go.Candlestick(
-        x=df_15minID['Date'].dt.strftime('%H:%M'), open=df_15minID['Open'], high=df_15minID['High'], low=df_15minID['Low'],
+        x=df_15minID['Date'].dt.strftime('%d %H:%M'), open=df_15minID['Open'], high=df_15minID['High'], low=df_15minID['Low'],
         close=df_15minID['Close'], name='Price',
         increasing_line_color=color_palette['positive'],
         decreasing_line_color=color_palette['negative'])])

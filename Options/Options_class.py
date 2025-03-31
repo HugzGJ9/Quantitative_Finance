@@ -29,7 +29,8 @@ class Option_eu:
         self.use_vol_surface = use_vol_surface
         self.volatility_interpolator = None
         self.booked_price = booked_price
-
+        self.prices = []
+        self.deltas = []
         if self.use_vol_surface and self.volatility_surface_df is not None:
             self.set_volatility_surface()
 
@@ -543,6 +544,11 @@ class Option_eu:
         return
     def simu_asset(self, time):
         self.asset.simu_asset(time)
+        path = self.asset.history
+        for i in path:
+            self.asset.St = i
+            self.prices.append(self.option_price_close_formulae())
+            self.deltas.append(self.Delta_DF())
         #self.asset.St = self.asset.history[-1]
         self.t = self.t + time/365
 
