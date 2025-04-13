@@ -1,0 +1,24 @@
+name: Daily DA Auction Update
+
+on:
+  schedule:
+    - cron: '0 15 14 * * *'  # Runs at 2 PM UTC daily (adjust if needed)
+  workflow_dispatch:  # allows manual run
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the script
+        run: python your_script_name.py
