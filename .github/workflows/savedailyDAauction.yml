@@ -22,7 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run the script
-        run: python python Asset_Modeling/Energy_Modeling/ShortTerm_Power/DA_AuctionFR.py
+        run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/DA_AuctionFR.py
 
       - name: Commit and push updated Excel file
         run: |
