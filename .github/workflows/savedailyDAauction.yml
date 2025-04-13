@@ -20,7 +20,9 @@ jobs:
 
       - name: Run the script
         run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/DA_AuctionFR.py
-
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Commit and push updated Excel file
         run: |
           git config --global user.name "github-actions"
