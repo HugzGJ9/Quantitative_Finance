@@ -2,12 +2,13 @@ name: Daily DA Auction Update
 
 on:
   schedule:
-    - cron: '0 15 15 * * *'  # Runs at 2 PM UTC daily (adjust if needed)
-  workflow_dispatch:  # allows manual run
+    - cron: '27 15 * * *'  # 15:15 Paris time
+  workflow_dispatch:
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -22,3 +23,11 @@ jobs:
 
       - name: Run the script
         run: python your_script_name.py
+
+      - name: Commit and push updated Excel file
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add Data/DA_PriceFR.xlsx
+          git commit -m "Update DA_PriceFR.xlsx [auto]" || echo "No changes to commit"
+          git push
