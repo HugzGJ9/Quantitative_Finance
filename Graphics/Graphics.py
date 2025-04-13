@@ -87,9 +87,9 @@ def plot_multiple_lists(*price_paths):
         for ax, paths, idx in zip(axes, price_paths, range(n)):
             for path in paths:
                 ax.plot(path)
-            ax.set_title(f'Price Paths Plot {idx + 1}')
+            ax.set_title(f'PNL Paths Plot {idx + 1}')
             ax.set_xlabel('Time Steps')
-            ax.set_ylabel('Price')
+            ax.set_ylabel('PNL')
             ax.grid(True)
 
         plt.tight_layout()

@@ -54,5 +54,5 @@ def runDemoVolSurface():
 
 
 if __name__ == '__main__':
-    runDemo() #consider the volatility as a constant.
-    # runDemoVolSurface() #consider the volatility as a surface depending on time and moneyness. Volatility surface is describ within the file Volatility/Smile.xlsx
+    # runDemo() #consider the volatility as a constant.
+    runDemoVolSurface() #consider the volatility as a surface depending on time and moneyness. Volatility surface is describ within the file Volatility/Smile.xlsx

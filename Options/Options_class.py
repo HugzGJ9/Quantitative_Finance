@@ -20,7 +20,7 @@ class Option_eu:
         self.asset = asset
         self.type = type
         self.K = K
-        self.t = (len(self.asset.history)-1)/(365*24)
+        self.t = self.asset.t
         self.T = T
         self.r = r
         self.barrier = barrier
@@ -407,7 +407,7 @@ class Option_eu:
                           ))
         fig.show()
     def Theta_DF(self):
-        delta_t = 0.00001
+        delta_t = 0.00001 / 365
         self.t = self.t+delta_t
         option_delta_t = self.option_price_close_formulae()
         self.t = self.t-delta_t

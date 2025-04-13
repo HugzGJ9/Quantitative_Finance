@@ -25,11 +25,15 @@ class Book():
         self.basket.append(option)
 
     def set_t(self, time):
+        self.asset.t = time
         for option in self.basket:
-            option.t = time
+            option.t = self.asset.t
+        return
     def update_t(self, time_shift):
+        self.asset.t += time_shift
         for option in self.basket:
-            option.t = option.t + time_shift
+            option.t += time_shift
+        return
 
     def delta_hedge(self, logger=False):
         if logger:
