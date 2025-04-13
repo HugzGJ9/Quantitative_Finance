@@ -2,7 +2,7 @@ name: Daily DA Auction Update
 
 on:
   schedule:
-    - cron: '27 15 * * *'  # 15:15 Paris time
+    - cron: '0 13 * * *'  # 15:15 Paris time
   workflow_dispatch:
 
 jobs:
