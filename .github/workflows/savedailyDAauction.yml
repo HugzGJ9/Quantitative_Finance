@@ -2,7 +2,7 @@ name: Daily DA Auction Update
 
 on:
   schedule:
-    - cron: '0 15 14 * * *'  # Runs at 2 PM UTC daily (adjust if needed)
+    - cron: '0 15 15 * * *'  # Runs at 2 PM UTC daily (adjust if needed)
   workflow_dispatch:  # allows manual run
 
 jobs:
