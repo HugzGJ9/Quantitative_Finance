@@ -2,7 +2,7 @@ name: Daily DA Auction Update
 
 on:
   schedule:
-    - cron: '27 15 * * *'  # 15:15 Paris time
+    - cron: '0 16 * * *'  # 15:15 Paris time
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run the script
-        run: python your_script_name.py
+        run: python python Asset_Modeling/Energy_Modeling/ShortTerm_Power/DA_AuctionFR.py
 
       - name: Commit and push updated Excel file
         run: |
