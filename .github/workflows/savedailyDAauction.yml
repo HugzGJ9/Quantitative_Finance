@@ -25,11 +25,3 @@ jobs:
         run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/DA_AuctionFR.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
-      - name: Commit and push updated Excel file
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add Data/DA_PriceFR.xlsx
-          git commit -m "Update DA_PriceFR.xlsx [auto]" || echo "No changes to commit"
-          git push
