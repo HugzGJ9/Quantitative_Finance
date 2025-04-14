@@ -1,9 +1,10 @@
 import ssl
 from email.message import EmailMessage
 import smtplib
+from key_pass import KEYPASS
 email_sender = 'hugo.lambert.perso@gmail.com'
 email_receiver = 'hugo.lambert.perso@gmail.com'
-email_password = 'dijyasvooloqsdbi'
+email_password = KEYPASS[email_sender]
 
 subject = 'TEST AUTO EMAIL'
 body = '''

@@ -11,6 +11,8 @@ def dataformating(APIname, data):
         df['date'] = df['start_date'].str[:10]
         df['time'] = df['start_date'].str[11:19]
         df = df.drop(columns=['start_date', 'end_date'])
+        df = df[['date', 'time', 'value', 'price']]
+
     if APIname == 'Actual Generation':
         df = pd.DataFrame(data['actual_generations_per_production_type'][0]['values'])
         df.index = df['start_date']

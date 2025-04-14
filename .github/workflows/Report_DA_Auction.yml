@@ -18,4 +18,4 @@ jobs:
           python-version: '3.10'
           
       - name: Run the script
-        run: python API/GMAIL/send_email_test.py
+        run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/report_daily_DA_FR.py
