@@ -2,7 +2,7 @@ name: Daily DA Auction Update
 
 on:
   schedule:
-    - cron: '30 6 * * *'
+    - cron: '40 10 * * *'
   workflow_dispatch:  # allows manual run
 
 jobs:
@@ -21,3 +21,5 @@ jobs:
 
       - name: Run the script
         run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/report_daily_DA_FR.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
