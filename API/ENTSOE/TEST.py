@@ -1,13 +1,16 @@
-from entsoe import EntsoeRawClient
+from entsoe import EntsoePandasClient
+
+client = EntsoePandasClient(api_key='e37c0206-5d3c-4258-84d6-323ac6044d69')
+
 import pandas as pd
 
-client = EntsoeRawClient(api_key='<YOUR API KEY>')
+start = pd.Timestamp('20250201T0001', tz='Europe/Paris')
+end = pd.Timestamp('20250413T2359', tz='Europe/Paris')
 
-start = pd.Timestamp('20171201', tz='Europe/Brussels')
-end = pd.Timestamp('20180101', tz='Europe/Brussels')
-country_code = 'BE'  # Belgium
-country_code_from = 'FR'  # France
-country_code_to = 'DE_LU' # Germany-Luxembourg
-type_marketagreement_type = 'A01'
-contract_marketagreement_type = 'A01'
-process_type = 'A51'
+df = client.query_generation(
+    country_code='FR',
+    start=start
+)
+df['hour'] = df.index.hour
+df.groupby(['hour']).sum()
+df

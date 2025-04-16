@@ -1,3 +1,5 @@
+import datetime
+
 import requests
 
 from API.RTE.OAuth2 import getToken
@@ -12,8 +14,26 @@ def dataformating(APIname, data):
         df['time'] = df['start_date'].str[11:19]
         df = df.drop(columns=['start_date', 'end_date'])
         df = df[['date', 'time', 'value', 'price']]
-
-    if APIname == 'Actual Generation':
+        df['datetime'] = pd.to_datetime(df['date'] + ' ' + df['time'])
+        df = df.sort_values('datetime')
+    elif APIname == 'Generation Forecast':
+        forecasts = data['forecasts']  # replace with your actual variable if different
+        records = []
+        for forecast in forecasts:
+            prod_type = forecast['production_type']
+            for v in forecast['values']:
+                timestamp = v['start_date']
+                value = v['value']
+                records.append({'timestamp': timestamp, prod_type: value})
+        df = pd.DataFrame(records)
+        df = df.groupby('timestamp').first().reset_index()
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.set_index('timestamp').sort_index()
+        df = df.resample('H').mean()
+        df['WIND'] = df['WIND_ONSHORE'] + df['WIND_OFFSHORE']
+        now = pd.Timestamp.now(tz='Europe/Paris').normalize()
+        df = df[(df.index > now + pd.Timedelta(days=1)) & (df.index < now + pd.Timedelta(days=2))]
+    elif APIname == 'Actual Generation':
         df = pd.DataFrame(data['actual_generations_per_production_type'][0]['values'])
         df.index = df['start_date']
         df = df.drop(columns=['start_date', 'end_date', 'updated_date'])
@@ -41,7 +61,9 @@ def getAPIdata(APIname:str, logger=False)->pd.DataFrame:
     return data
 
 if __name__ == '__main__':
-    getAPIdata(APIname="Wholesale Market", logger=True)
-    getAPIdata(APIname="Actual Generation", logger=True)
+    # getAPIdata(APIname="Wholesale Market", logger=True)
+    # getAPIdata(APIname="Actual Generation", logger=True)
+    getAPIdata(APIname="Generation Forecast", logger=True)
+
 
 

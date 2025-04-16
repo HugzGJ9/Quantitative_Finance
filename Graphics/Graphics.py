@@ -144,6 +144,34 @@ def DAauctionplot(df, title='Price Curve and Value Histogram', show=True):
         plt.show()
     return fig
 
+def ForecastGenplot(df, title='RES Forecast Generation', show=True):
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+
+    # Plot price curve (line)
+    ax1.plot(df.index, df['WIND'],
+             label='Wind',
+             linestyle='-',
+             linewidth=2,
+             color='green')
+    ax1.plot(df.index, df['SOLAR'],
+             label='Solar',
+             linestyle='-',
+             linewidth=2,
+             color='orange')
+    ax1.set_ylabel('Power Generation in MW')
+    ax1.set_xlabel('Datetime')
+    ax1.grid(True, which='major', linestyle='--', alpha=0.6)
+    fig.autofmt_xdate()
+    plt.title(title)
+    fig.tight_layout()
+
+    # Optional legend (blue + orange)
+    lines_1, labels_1 = ax1.get_legend_handles_labels()
+    if lines_1:
+        ax1.legend(lines_1, labels_1, loc='upper left')
+    if show:
+        plt.show()
+    return fig
 if __name__ == '__main__':
     data = pd.read_excel('h:/Downloads/DApriceES2023.xlsx')
 
