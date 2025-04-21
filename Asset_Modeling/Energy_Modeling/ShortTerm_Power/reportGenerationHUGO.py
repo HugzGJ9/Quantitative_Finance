@@ -60,7 +60,7 @@ table_forecast_html = style_html_table(generation_forecast[['datetime', 'WIND', 
 table_forecast_total_html = style_html_table(generation_forecast[['SOLAR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
 
 
-title = f'DA auction FR {generation_forecast["datetime"][:10].iloc[0]}'
+title = f'Hugo RES Generation Forecast FR {generation_forecast["datetime"][:10].iloc[0]}'
 body = f"""
 <h2>Day-Ahead Generation Forecast Summary</h2>
 <h3>DA Volume Forecast WIND & SOLAR</h3>

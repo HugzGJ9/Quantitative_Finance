@@ -61,7 +61,7 @@ table_forecast_html = style_html_table(df_forecast_gen[['datetime', 'WIND', 'SOL
 table_forecast_total_html = style_html_table(df_forecast_gen[['SOLAR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
 
 
-title = f'DA auction FR {df_forecast_gen["datetime"][:10].iloc[0]}'
+title = f'RTE RES Generation Forecast FR {df_forecast_gen["datetime"][:10].iloc[0]}'
 body = f"""
 <h2>Day-Ahead Generation Forecast Summary</h2>
 <h3>DA Volume Forecast WIND & SOLAR</h3>
