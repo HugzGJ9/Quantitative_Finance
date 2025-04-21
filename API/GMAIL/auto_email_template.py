@@ -2,7 +2,7 @@ import mimetypes
 import ssl
 from email.message import EmailMessage
 import smtplib
-from API.GMAIL.key_pass import KEYPASS
+from Keypass.key_pass import KEYPASS
 
 def setAutoemail(emails: list, subject, body_html, image_buffers=None, image_cids=None, attachment=False):
     import mimetypes

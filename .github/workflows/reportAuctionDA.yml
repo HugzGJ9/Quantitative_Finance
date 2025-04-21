@@ -1,0 +1,25 @@
+name: Daily DA Auction Update
+
+on:
+  schedule:
+    - cron: '40 10 * * *'
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the script
+        run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/reportAuctionDA_FR.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}

@@ -1,16 +1,12 @@
 import requests
 from Logger.Logger import mylogger
+from Keypass.key_pass import API_RTE
 
-API ={'Wholesale Market' : {'token_url': 'https://digital.iservices.rte-france.com/open_api/wholesale_market/v2/france_power_exchanges', 'key': 'YzZkZDc2YTItMDUyZi00Y2FhLTg0NjMtMDE5YmI3ODBmMGMxOjAyMDMzM2Q2LTgwOWUtNDQ0NS05NGE4LWM1YzQ0Mzk3ZmJiZA=='},
-      'Actual Generation' : {'token_url': 'https://digital.iservices.rte-france.com/open_api/actual_generation/v1/actual_generations_per_production_type?', 'key': 'ODI5NzMxZjktNmI0MS00NDRlLWEyZWUtODkwMmJkNTU3ODNkOjZhMzNmODIzLTYyYTktNDMwMy05NzllLTQ5MTM0MWUwODM3ZA=='},
-      'Generation Forecast' : {'token_url': 'https://digital.iservices.rte-france.com/open_api/generation_forecast/v2/forecasts?', 'key': 'MWM4YzcwODgtNmViNS00NGQ1LWFlYjktOGQ1MDgyYmViYzE1OmIwZWY2MjdiLWE0NWMtNDhlYi04NzQ4LTI5YmRmODBkOGQ0ZQ=='}}
 def getToken(APIname:str, logger=False):
     token_url = "https://digital.iservices.rte-france.com/token/oauth/"
     data = {
-        'Authorization' : f'Basic {API[APIname]["key"]}',
+        'Authorization' : f'Basic {API_RTE[APIname]["key"]}',
         'Content-Type' : 'application/x-www-form-urlencoded',
-        'start_date': '2025-01-01T00:00:00+02:00',
-        'end_date': '2025-04-12T22:00:00+02:00',
     }
 
     response = requests.post(token_url, headers=data)
