@@ -20,6 +20,6 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run the script
-        run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/report_daily_DA_FR.py
+        run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/reportAuctionDA_FR.py
         env:
           PYTHONPATH: ${{ github.workspace }}
