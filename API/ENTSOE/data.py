@@ -2,17 +2,17 @@ from entsoe import EntsoePandasClient
 import pandas as pd
 from API.ENTSOE.EntsoePandasClient import CLIENT
 
-def getPriceDaHist(country='FR', start=pd.Timestamp('20250101T0001', tz='Europe/Paris'), end=pd.Timestamp('20250417T2359', tz='Europe/Paris')):
+def getPriceDaHist(country='FR', start=pd.Timestamp("2017-04-01", tz="Europe/Paris"), end=pd.Timestamp("2025-04-01", tz="Europe/Paris")):
     df = pd.DataFrame(CLIENT.query_day_ahead_prices(
-        country_code='FR',
+        country_code=country,
         start=start,
         end=end
     ))
     df.columns = ['price']
     return df
-def getGenerationData(country='FR', start=pd.Timestamp('20250101T0001', tz='Europe/Paris'), end=pd.Timestamp('20250417T2359', tz='Europe/Paris')):
+def getGenerationData(country='FR', start=pd.Timestamp("2017-04-01", tz="Europe/Paris"), end=pd.Timestamp("2025-04-01", tz="Europe/Paris")):
     df = CLIENT.query_generation(
-        country_code='FR',
+        country_code=country,
         start=start,
         end=end
     )
@@ -26,9 +26,9 @@ def getGenerationData(country='FR', start=pd.Timestamp('20250101T0001', tz='Euro
         df['WIND'] = df['WON']
     return df
 
-def getInstalledCapacityData(country='FR', start=pd.Timestamp('20250101T0001', tz='Europe/Paris'), end=pd.Timestamp('20250417T2359', tz='Europe/Paris')):
+def getInstalledCapacityData(country='FR', start=pd.Timestamp("2017-04-01", tz="Europe/Paris"), end=pd.Timestamp("2025-04-01", tz="Europe/Paris")):
     df = CLIENT.query_installed_generation_capacity(
-        country_code='FR',
+        country_code=country,
         start=start,
         end=end,
         psr_type=None
