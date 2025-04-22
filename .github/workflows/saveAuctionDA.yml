@@ -1,4 +1,4 @@
-name: Daily DA Auction Update
+name: Save DA Auction in SUPABASE
 
 on:
   schedule:
