@@ -15,9 +15,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.8'
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install sklearn
 
       - name: Run the script
         run: python Asset_Modeling/Energy_Modeling/ShortTerm_Power/reportGenerationHUGO.py
