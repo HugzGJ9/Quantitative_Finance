@@ -1,4 +1,4 @@
-name: Daily DA Auction Update
+name: Hugo RES Generation Forecast FR
 
 on:
   schedule:
