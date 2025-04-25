@@ -133,5 +133,5 @@ def getGenerationModelData(country='FR'):
 
 if __name__ == "__main__":
     weather, res_generation = getGenerationModelData()
-    builGenerationModel(weather, res_generation, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR2")
-    builGenerationModel(weather, res_generation, model_use="XGBRegressor", model_name="model_RES_generation_XGBR2")
+    builGenerationModel(weather, res_generation, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR")
+    builGenerationModel(weather, res_generation, model_use="XGBRegressor", model_name="model_RES_generation_XGBR")

@@ -12,7 +12,6 @@ def _requests_session() -> requests.Session:
     return s
 
 def getWeatherData(cfg: Config, data_type:str) -> pd.DataFrame:
-    mylogger.logger.info("Weather history → %s … %s", cfg.start, cfg.start)
     with _requests_session() as s:
         r = s.get(url[data_type], timeout=30); r.raise_for_status()
     df = pd.DataFrame(r.json()["hourly"]).rename(columns={"shortwave_radiation": "solar_radiation"})

@@ -40,8 +40,7 @@ def predictGeneration(models: Dict[str, Pipeline], fc: pd.DataFrame) -> pd.DataF
     feat["total_generation_mw"] = feat["WIND"] + feat["SR"]
     return feat.reset_index()[["time", "WIND", "SR", "total_generation_mw"]]
 
-def getGenerationForecastReport(model_name="model_RES_generation_LGBMR2"):
-    global generation_forecast
+def getGenerationForecastReport(model_name="model_RES_generation_LGBMR"):
     pipe = getModelPipe(model_name=model_name)
     fc = getWeatherForecastData()
     generation_forecast = predictGeneration(pipe, fc)

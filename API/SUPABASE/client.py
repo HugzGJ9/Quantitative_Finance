@@ -40,6 +40,13 @@ def fetchRESGenerationData(country="FR"):
     df.index = df['id']
     df.index.name = 'time'
     df = df[['SR', 'WIND']]
+    res_capacity = fetchRESCapacityData(country)
+    res_capacity = res_capacity.rename(columns={'SR': 'SR_capa', 'WIND': 'WIND_capa'})
+    df['SR_capa'] = df.index.year.map(res_capacity['SR_capa'])
+    df['WIND_capa'] = df.index.year.map(res_capacity['WIND_capa'])
+    df = df[(df['SR'] <= df['SR_capa']) & (df['WIND'] <= df['WIND_capa'])]
+    df = df.drop(columns=['SR_capa', 'WIND_capa'])
+    df = df[df.index.year < 2025]
     return df
 def fetchRESCapacityData(country="FR"):
     if country == "FR":
@@ -102,29 +109,18 @@ def updateDfSupabase(df, db_name):
 
 
 if __name__ == '__main__':
-    for i in range(8):
-        start = pd.Timestamp('20240201T0001', tz='Europe/Paris') - pd.DateOffset(years=i)
-        end = pd.Timestamp('20250101T0001', tz='Europe/Paris') - pd.DateOffset(years=i)
+    for i in range(10*6):
+        start = pd.Timestamp('20200301', tz='Europe/Paris') - pd.DateOffset(months=i*2)
+        end = pd.Timestamp('20200601', tz='Europe/Paris') - pd.DateOffset(months=i*2)
         print(f"{start} - {end}")
-        data = getPriceDaHist(start=start, end=end)
+        data = getGenerationData(start=start, end=end)
         data.index = data.index.tz_convert('UTC')
-        updateDfSupabase(data, 'DAPowerPriceFR')
+        updateDfSupabase(data, 'GenerationFR')
 
-    # data = getWeatherData(cfg, 'history')
-    # names = ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-    #          'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover',
-    #          'Cloud_Cover_Low', 'Cloud_Cover_Mid', 'Cloud_Cover_High',
-    #          'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
-    #          'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m',
-    #          'Wind_Gusts_10m', 'Surface_Pressure']
-    # data.columns = names
-    # insertDfSupabase(data, 'WeatherFR')
-    # updateDfSupabase(data, 'WeatherFR')
-    # start = pd.Timestamp("2010-04-01", tz="Europe/Paris")
-    # end = pd.Timestamp("2025-04-10", tz="Europe/Paris")
-    # data = getInstalledCapacityData(start=start, end=end)
-    # insertDfSupabase(data, 'InstalledCapacityFR')
-    # df = getDfSupabase('DAPowerPriceFR')
-    # df
-
+    # start = pd.Timestamp('20241201', tz='Europe/Paris')
+    # end = pd.Timestamp('20250401', tz='Europe/Paris')
+    # print(f"{start} - {end}")
+    # data = getGenerationData(start=start, end=end)
+    # data.index = data.index.tz_convert('UTC')
+    # updateDfSupabase(data, 'GenerationFR')
     # removeAllRowsSupabase('GenerationFR')

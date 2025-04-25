@@ -16,7 +16,8 @@ def getGenerationData(country='FR', start=pd.Timestamp("2017-04-01", tz="Europe/
         start=start,
         end=end
     )
-    df = df.resample('H').sum()
+    df = df.fillna(0.0)
+    df = df.resample('H').mean()
     df = df.loc[:, df.columns.get_level_values(1) == "Actual Aggregated"]
     df.columns = df.columns.get_level_values(0)
     df = df.rename(columns={"Wind Offshore": "WOF", "Wind Onshore": "WON", "Solar": "SR"})

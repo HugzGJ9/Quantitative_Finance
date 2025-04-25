@@ -85,7 +85,7 @@ def evaluate_model_accuracy(weather, res_generation, pipes, country="FR", holdou
 if __name__ == '__main__':
     weather, res_generation = getGenerationModelData()
     pipes = {
-        "model1": getModelPipe(model_name="model_RES_generation_LGBMR2"),
-        "model2": getModelPipe(model_name="model_RES_generation_XGBR2"),
+        "model1": getModelPipe(model_name="model_RES_generation_LGBMR"),
+        "model2": getModelPipe(model_name="model_RES_generation_XGBR"),
     }
     evaluate_model_accuracy(weather, res_generation, pipes, isShow=True)
