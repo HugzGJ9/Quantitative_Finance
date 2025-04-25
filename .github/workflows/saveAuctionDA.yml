@@ -2,7 +2,7 @@ name: Save DA Auction in SUPABASE
 
 on:
   schedule:
-    - cron: '40 10 * * *'
+    - cron: '40 11 * * *'
   workflow_dispatch:
 
 jobs:
