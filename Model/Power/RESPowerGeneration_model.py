@@ -9,7 +9,7 @@ from lightgbm import LGBMRegressor
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from API.SUPABASE.client import fetchRESGenerationData, fetchWeatherData, fetchRESCapacityData
+from Asset_Modeling.Energy_Modeling.data.data import fetchRESGenerationData, fetchRESCapacityData, fetchWeatherData
 from Logger.Logger import mylogger
 from API.OPENMETEO.Config_class import cfg
 import numpy as np

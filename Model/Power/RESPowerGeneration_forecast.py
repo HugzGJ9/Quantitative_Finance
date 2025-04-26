@@ -8,7 +8,7 @@ from sklearn.pipeline import Pipeline
 
 from API.OPENMETEO.Config_class import cfg
 from API.OPENMETEO.data import getWeatherData
-from API.SUPABASE.client import fetchRESCapacityData
+from Asset_Modeling.Energy_Modeling.data.data import fetchRESCapacityData
 
 from Model.Power.RESPowerGeneration_model import getModelPipe, _add_time_features, TARGETS
 
