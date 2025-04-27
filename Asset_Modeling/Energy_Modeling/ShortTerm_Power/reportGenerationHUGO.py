@@ -1,5 +1,6 @@
 import pandas as pd
 
+from API.SUPABASE.save import saveDailyGenerationTS
 from Asset_Modeling.Energy_Modeling.data.data import fetchRESGenerationMonthlyData
 from Graphics.Graphics import ForecastGenplot
 from API.GMAIL.auto_email_template import setAutoemail
@@ -78,7 +79,7 @@ table_style = """
 generation_forecast = getGenerationForecastReport()
 res_generation_month, res_generation_day = fetchRESGenerationMonthlyData("FR")
 monthly_stats = buildMonthlyTable(res_generation_month, res_generation_day)
-
+saveDailyGenerationTS(generation_forecast, 'HUGO')
 # Convert MWh to GWh and round to 2 decimal places
 generation_forecast = generation_forecast / 1000
 generation_forecast = generation_forecast.round(2)
@@ -101,12 +102,9 @@ def style_html_table(html):
     )
 
 generation_forecast['datetime'] = pd.to_datetime(generation_forecast.index.astype(str).str[:10] + ' ' + generation_forecast.index.astype(str).str[11:19])
-table_forecast_html = style_html_table(generation_forecast[['datetime', 'WIND', 'SOLAR']].to_html(index=False, border=1))
-table_forecast_total_html = style_html_table(generation_forecast[['SOLAR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
+table_forecast_html = style_html_table(generation_forecast[['datetime', 'WIND', 'SR']].to_html(index=False, border=1))
+table_forecast_total_html = style_html_table(generation_forecast[['SR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
 table_monthly_stats_html = style_html_table(monthly_stats.to_html(index=False, border=1))
-
-
-
 
 title = f'Hugo RES Generation Forecast FR {generation_forecast["datetime"][:10].iloc[0]}'
 body = f"""

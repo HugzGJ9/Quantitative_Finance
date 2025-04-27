@@ -29,7 +29,6 @@ def removeAllRowsSupabase(db_name):
     print(f"Removed {len(ids_to_delete)} rows from '{db_name}'")
     return
 
-
 def insertDfSupabase(df, db_name):
     supabase = getAccessSupabase(db_name)
     df.index.name = 'id'
@@ -68,10 +67,17 @@ if __name__ == '__main__':
     #     data.index = data.index.tz_convert('UTC')
     #     updateDfSupabase(data, 'GenerationFR')
 
-    start = pd.Timestamp('20250401', tz='Europe/Paris')
-    end = pd.Timestamp('20250501', tz='Europe/Paris')
-    print(f"{start} - {end}")
-    data = getGenerationData(start=start, end=end)
-    data.index = data.index.tz_convert('UTC')
-    updateDfSupabase(data, 'GenerationFR')
+    # start = pd.Timestamp('20250401', tz='Europe/Paris')
+    # end = pd.Timestamp('20250501', tz='Europe/Paris')
+    # print(f"{start} - {end}")
+    # data = getGenerationData(start=start, end=end)
+    # data.index = data.index.tz_convert('UTC')
+    # updateDfSupabase(data, 'GenerationFR')
     # removeAllRowsSupabase('GenerationFR')
+    now = pd.Timestamp.now(tz='Europe/Paris')
+    yesterday = now.normalize() - pd.Timedelta(days=1)
+    df = getGenerationData(country='FR', start=yesterday, end=now)
+    df = df[['SR', 'WIND']]
+    df.columns = ['Hugo_SR', 'Hugo_WIND']
+    df.index = df.index.tz_convert('UTC')
+    updateDfSupabase(df, 'ForecastGenerationFR')

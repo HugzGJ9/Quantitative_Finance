@@ -1,5 +1,8 @@
 import pandas as pd
 from API.RTE.data import getAPIdata
+from API.SUPABASE.save import saveDailyGenerationTS
+from Asset_Modeling.Energy_Modeling.ShortTerm_Power.reportGenerationHUGO import buildMonthlyTable
+from Asset_Modeling.Energy_Modeling.data.data import fetchRESGenerationMonthlyData
 from Graphics.Graphics import DAauctionplot, ForecastGenplot
 from API.GMAIL.auto_email_template import setAutoemail
 from io import BytesIO
@@ -40,6 +43,11 @@ table_style = """
 </style>
 """
 df_forecast_gen = getAPIdata(APIname="Generation Forecast")
+df_forecast_gen = df_forecast_gen.rename(columns={'SOLAR': 'SR'})
+
+res_generation_month, res_generation_day = fetchRESGenerationMonthlyData("FR")
+monthly_stats = buildMonthlyTable(res_generation_month, res_generation_day)
+saveDailyGenerationTS(df_forecast_gen, 'RTE')
 
 fig = ForecastGenplot(df_forecast_gen, show=False)
 image_cid, img_data = setImgEmail(fig)
@@ -57,8 +65,8 @@ def style_html_table(html):
 
 # Create raw HTML from pandas
 df_forecast_gen['datetime'] = pd.to_datetime(df_forecast_gen.index.astype(str).str[:10] + ' ' + df_forecast_gen.index.astype(str).str[11:19])
-table_forecast_html = style_html_table(df_forecast_gen[['datetime', 'WIND', 'SOLAR']].to_html(index=False, border=1))
-table_forecast_total_html = style_html_table(df_forecast_gen[['SOLAR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
+table_forecast_html = style_html_table(df_forecast_gen[['datetime', 'WIND', 'SR']].to_html(index=False, border=1))
+table_forecast_total_html = style_html_table(df_forecast_gen[['SR', 'WIND']].resample('D').sum().to_html(index=False, border=1))
 
 
 title = f'RTE RES Generation Forecast FR {df_forecast_gen["datetime"][:10].iloc[0]}'

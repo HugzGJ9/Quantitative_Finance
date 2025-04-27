@@ -44,7 +44,7 @@ def getGenerationForecastReport(model_name="model_RES_generation_LGBMR"):
     pipe = getModelPipe(model_name=model_name)
     fc = getWeatherForecastData()
     generation_forecast = predictGeneration(pipe, fc)
-    generation_forecast = generation_forecast.rename(columns={"SR": "SOLAR"})
+    # generation_forecast = generation_forecast.rename(columns={"SR": "SOLAR"})
     generation_forecast = generation_forecast.set_index('time')
     return generation_forecast
 

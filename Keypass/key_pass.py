@@ -7,10 +7,11 @@ API_RTE ={'Wholesale Market' : {'token_url': 'https://digital.iservices.rte-fran
 API_SUPABASE = {'DAPowerPriceFR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co', 'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
                 'GenerationFR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co', 'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
                 'InstalledCapacityFR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co', 'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
+                'ForecastGenerationFR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co',
+                                        'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
                 'ShapeMonthSR_FR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co',
                                         'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
                 'ShapeMonthWIND_FR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co',
                                         'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'},
-
                 'WeatherFR': {'token_url': 'https://wjcimcwgdbrytgjqmfdo.supabase.co', 'key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqY2ltY3dnZGJyeXRnanFtZmRvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDk2NTQ5MiwiZXhwIjoyMDYwNTQxNDkyfQ.9G2CNhzirAx9vSNcUZX_0qd-8TD1ruvX3zgjq4E7cN8'}}
 SUPABASE_pass = 'LjY+5CK3S5z_L?w'

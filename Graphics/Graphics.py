@@ -153,7 +153,7 @@ def ForecastGenplot(df, title='RES Forecast Generation', show=True):
              linestyle='-',
              linewidth=2,
              color='green')
-    ax1.plot(df.index, df['SOLAR'],
+    ax1.plot(df.index, df['SR'],
              label='Solar',
              linestyle='-',
              linewidth=2,
