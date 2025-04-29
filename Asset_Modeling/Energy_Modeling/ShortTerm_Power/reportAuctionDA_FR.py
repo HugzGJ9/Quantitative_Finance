@@ -42,6 +42,7 @@ table_style = """
 
 df = getAPIdata(APIname="Wholesale Market")
 df_forecast_gen = getAPIdata(APIname="Generation Forecast")
+df_forecast_gen = df_forecast_gen.rename(columns={'SOLAR': 'SR'})
 
 fig = DAauctionplot(df, title=f'Prix et Volume Power FR - {df["date"].iloc[0]}', show=False)
 fig2 = ForecastGenplot(df_forecast_gen, show=False)
