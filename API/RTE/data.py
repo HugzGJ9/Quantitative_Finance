@@ -6,6 +6,17 @@ from API.RTE.OAuth2 import getToken
 from Keypass.key_pass import API_RTE
 import pandas as pd
 from Logger.Logger import mylogger
+from datetime import datetime, timedelta
+import pytz
+import requests
+timezone = pytz.timezone('Europe/Paris')
+now = datetime.now(timezone)
+today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+yesterday = today - timedelta(days=1)
+today = today + timedelta(days=1)
+# Correct format (ISO 8601)
+today = today.isoformat(timespec='seconds')
+yesterday = yesterday.isoformat(timespec='seconds')
 def dataformating(APIname, data):
     if APIname == 'Wholesale Market':
         df = pd.DataFrame(data['france_power_exchanges'][0]['values'])
@@ -48,13 +59,35 @@ def dataformating(APIname, data):
         df = df.set_index('timestamp').sort_index()
         df = df.resample('H').mean()
         df['WIND'] = df['WIND_ONSHORE'] + df['WIND_OFFSHORE']
+    elif APIname == 'Actual Generation 15min':
+        production = data['generation_mix_15min_time_scale']  # replace with your actual variable if different
+        records = []
+        for prod in production:
+            prod_type = prod['production_type']
+            for v in prod['values']:
+                timestamp = v['start_date']
+                value = v['value']
+                records.append({'timestamp': timestamp, prod_type: value})
+        df = pd.DataFrame(records)
+        df = df.groupby('timestamp').first().reset_index()
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.set_index('timestamp').sort_index()
+        df = df.rename(columns={'SOLAR':'SR'})
     return df
 def getAPIdata(APIname:str, logger=False)->pd.DataFrame:
     access_token = getToken(APIname)
     headers = {
         'Authorization': f'Bearer {access_token}',
     }
-    response = requests.get(API_RTE[APIname]["token_url"], headers=headers)
+
+    # Query parameters (dates go here)
+    params = {
+        'start_date': yesterday,
+        'end_date': today
+    }
+
+    # Send request
+    response = requests.get(API_RTE[APIname]["token_url"], headers=headers, params=params)
     if logger:
         mylogger.logger.info(f"Status code: {response.status_code}")
 
@@ -76,8 +109,8 @@ def getAuctionDaData():
     return df
 
 if __name__ == '__main__':
-    df = getAPIdata(APIname="Wholesale Market", logger=True)
-    # getAPIdata(APIname="Actual Generation", logger=True)
+    # df = getAPIdata(APIname="Wholesale Market", logger=True)
+    df = getAPIdata(APIname="Actual Generation 15min", logger=True)
     # df = getAPIdata(APIname="Generation Forecast", logger=True)
     df
 

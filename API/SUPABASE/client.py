@@ -45,9 +45,18 @@ def insertDfSupabase(df, db_name):
     return
 def updateDfSupabase(df, db_name):
     supabase = getAccessSupabase(db_name)
-    df.index.name = 'id'
-    data = df.reset_index()
+    data_db = supabase.table(db_name).select('*').in_('id', df.index).execute()
+    data_db = pd.DataFrame(data_db.data)
+    if not data_db.empty:
 
+        data_db = data_db.set_index('id')
+        data_db.update(df)
+        data_db.index.name = 'id'
+        data = data_db.reset_index()
+    else:
+        df.index.name = 'id'
+        data = df.reset_index()
+    supabase.table(db_name).delete().in_('id', df.index).execute()
     for col in data.columns:
         if pd.api.types.is_datetime64_any_dtype(data[col]):
             data[col] = data[col].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -78,6 +87,6 @@ if __name__ == '__main__':
     yesterday = now.normalize() - pd.Timedelta(days=1)
     df = getGenerationData(country='FR', start=yesterday, end=now)
     df = df[['SR', 'WIND']]
-    df.columns = ['Hugo_SR', 'Hugo_WIND']
+    df.columns = ['HUGO_SR', 'HUGO_WIND']
     df.index = df.index.tz_convert('UTC')
     updateDfSupabase(df, 'ForecastGenerationFR')

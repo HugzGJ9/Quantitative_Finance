@@ -4,12 +4,13 @@ from Keypass.key_pass import API_RTE
 
 def getToken(APIname:str, logger=False):
     token_url = "https://digital.iservices.rte-france.com/token/oauth/"
-    data = {
-        'Authorization' : f'Basic {API_RTE[APIname]["key"]}',
-        'Content-Type' : 'application/x-www-form-urlencoded',
+    headers = {
+        'Authorization': f'Basic {API_RTE[APIname]["key"]}',
+        'Content-Type': 'application/x-www-form-urlencoded',
     }
 
-    response = requests.post(token_url, headers=data)
+    # Send request
+    response = requests.post(token_url, headers=headers)
     status_code = response.status_code
     if logger:
         mylogger.logger.info(f'status code {status_code}')

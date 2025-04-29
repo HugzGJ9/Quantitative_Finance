@@ -2,25 +2,15 @@ import pandas as pd
 
 from API.ENTSOE.data import getGenerationData
 from API.GMAIL.auto_email_template import setAutoemail
-from API.RTE.data import getAuctionDaData
+from API.RTE.data import getAuctionDaData, getAPIdata
 from API.SUPABASE.client import updateDfSupabase
 from Logger.Logger import mylogger
-
-
 def saveDailyGeneration():
+    # df = getAPIdata(APIname="Actual Generation 15min", logger=True)
     now = pd.Timestamp.now(tz='Europe/Paris')
     yesterday = now.normalize() - pd.Timedelta(days=1)
-    df =  getGenerationData(country='FR', start=yesterday, end=now)
+    df = getGenerationData(country='FR', start=yesterday, end=now)
     saveDailyGenerationTS(df, 'REALIZED')
-    df.index = df.index.tz_convert('UTC')
-    try:
-        updateDfSupabase(df, 'DAPowerPriceFR')
-    except:
-        setAutoemail(
-            ['hugo.lambert.perso@gmail.com', 'hugo.lambert.perso@gmail.com'],
-            'INFO SAVE DAILY GENERATION FAILED.',
-            '''Daily Generation failed.'''
-        )
     return
 
 def saveDailyAuction():
