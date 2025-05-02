@@ -6,7 +6,9 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 from Logger.Logger import mylogger
-
+from Asset_Modeling.Energy_Modeling.data.data import fetchGenerationHistoryData
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
 
 def plot_density_with_outliers_auto_clip(
     df, x_col, y_col, gridsize=60, cmap='YlGnBu', quantile_clip=None, bins=20
@@ -28,14 +30,20 @@ def plot_density_with_outliers_auto_clip(
         pd.DataFrame: Outliers detected
     """
 
-    # --- Outlier Detection ---
-    outlier_df = detect_outliers_mad(df, x_col, y_col, bins=bins)
+    if y_col not in ['WIND', 'SR']:
+        mylogger.logger.error('y_col has to be either SR or WIND.')
+        return
+    elif y_col == 'SR':
+        outliers_detection_method = detect_outliers_hybrid
+        outlier_df = outliers_detection_method(df, x_col, y_col, bins=bins)
 
-    # --- Hexbin Plot ---
+    elif y_col == 'WIND':
+        outliers_detection_method = detect_outliers_residual_iqr_lowwind
+        outlier_df = outliers_detection_method(df, x_col, y_col)
+
     plt.figure(figsize=(10, 6))
     hb = plt.hexbin(df[x_col], df[y_col], gridsize=gridsize, cmap=cmap, mincnt=1)
 
-    # Auto-adjust quantile clip if needed
     counts = hb.get_array()
     if quantile_clip is None:
         quantile_clip = auto_quantile_clip(counts)
@@ -45,7 +53,6 @@ def plot_density_with_outliers_auto_clip(
     cb = plt.colorbar(hb)
     cb.set_label(f'Density (clipped at {quantile_clip:.2f})')
 
-    # Plot outliers
     if not outlier_df.empty:
         plt.scatter(outlier_df[x_col], outlier_df[y_col], color='red', s=10, alpha=0.6, label='Outliers')
         plt.legend()
@@ -126,7 +133,7 @@ def detect_outliers_iqr(df, x_col, y_col, bins=20):
 
     return pd.concat(outliers) if outliers else pd.DataFrame()
 
-def detect_outliers_zscore(df, x_col, y_col, bins=20, z_thresh=3.0):
+def detect_outliers_zscore(df, x_col, y_col, bins=20, z_thresh=2.0):
     """
     Detect outliers using standard Z-score (mean and std) within bins of x_col.
 
@@ -154,8 +161,84 @@ def detect_outliers_zscore(df, x_col, y_col, bins=20, z_thresh=3.0):
 
     return pd.concat(outliers) if outliers else pd.DataFrame()
 
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
 
-def detect_outliers_mad(df, x_col, y_col, bins=20, z_thresh=3.5):
+def detect_outliers_residual_iqr_lowwind(
+    df, x_col='Wind_Speed', y_col='Wind_Generation',
+    degree=3, z_thresh=3.8,
+    low_speed_thresh=10.0, iqr_bins=10
+):
+    """
+    Hybrid outlier detection for wind data:
+    - Uses polynomial fit + MAD for most of the data
+    - Uses IQR-based detection for low wind speeds (where residuals are small)
+
+    Parameters:
+        df (pd.DataFrame): Input data
+        x_col (str): Wind speed column
+        y_col (str): Wind generation column
+        degree (int): Degree of polynomial to fit
+        z_thresh (float): MAD-based Z-score threshold
+        low_speed_thresh (float): Wind speed threshold to define 'low wind'
+        iqr_bins (int): Number of bins for wind speed < threshold
+
+    Returns:
+        pd.DataFrame: Outlier rows
+    """
+    df = df.copy().dropna(subset=[x_col, y_col])
+
+    # ---------------------------
+    # Residual-based detection
+    # ---------------------------
+    X = df[[x_col]].values
+    y = df[y_col].values
+    poly = PolynomialFeatures(degree=degree)
+    X_poly = poly.fit_transform(X)
+
+    model = LinearRegression().fit(X_poly, y)
+    y_pred = model.predict(X_poly)
+
+    residuals = y - y_pred
+    df['residual'] = residuals
+
+    median = np.median(residuals)
+    mad = np.median(np.abs(residuals - median))
+    mad_score = np.abs(residuals - median) / mad if mad != 0 else np.zeros_like(residuals)
+
+    df['mad_score'] = mad_score
+    model_outliers = df[df['mad_score'] > z_thresh]
+
+    # ---------------------------
+    # IQR-based detection for low wind
+    # ---------------------------
+    lowwind_df = df[df[x_col] < low_speed_thresh].copy()
+    lowwind_df['bin'] = pd.cut(lowwind_df[x_col], bins=iqr_bins)
+
+    iqr_outliers = []
+    for _, group in lowwind_df.groupby('bin'):
+        if group.empty:
+            continue
+        q1 = group[y_col].quantile(0.25)
+        q3 = group[y_col].quantile(0.75)
+        iqr = q3 - q1
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+        iqr_outliers.append(group[(group[y_col] < lower) | (group[y_col] > upper)])
+
+    iqr_outliers_df = pd.concat(iqr_outliers) if iqr_outliers else pd.DataFrame()
+
+    # ---------------------------
+    # Combine both
+    # ---------------------------
+    combined_outliers = pd.concat([model_outliers, iqr_outliers_df]).drop_duplicates()
+
+    return combined_outliers
+
+
+def detect_outliers_mad(df, x_col, y_col, bins=100, z_thresh=2.5):
     """
     Detect outliers using robust Z-score based on MAD (median absolute deviation)
     within bins of x_col.
@@ -179,10 +262,63 @@ def detect_outliers_mad(df, x_col, y_col, bins=20, z_thresh=3.5):
         mad = np.median(np.abs(group[y_col] - median))
         if mad == 0:
             continue
-        robust_z = 0.6745 * (group[y_col] - median) / mad
-        outliers.append(group[np.abs(robust_z) > z_thresh])
+        # robust_z = 0.6745 * (group[y_col] - median) / mad
+        # outliers.append(group[np.abs(robust_z) > z_thresh])
+        mad_score = np.abs(group[y_col] - median) / mad
+        outliers.append(group[mad_score > z_thresh])
 
     return pd.concat(outliers) if outliers else pd.DataFrame()
+
+def detect_outliers_hybrid(df, x_col, y_col, bins=20, iqr_threshold=100, z_thresh=2.5):
+    """
+    Detect outliers in y_col using a hybrid method:
+    - IQR for low x_col bins (e.g., low solar radiation)
+    - MAD for other bins
+
+    Parameters:
+        df (pd.DataFrame): Input DataFrame
+        x_col (str): Column to bin (e.g., 'Solar_Radiation')
+        y_col (str): Column to check for outliers (e.g., 'SR')
+        bins (int): Number of bins to divide x_col
+        iqr_threshold (float): x_col threshold below which IQR is used
+        z_thresh (float): MAD Z-score threshold
+
+    Returns:
+        pd.DataFrame: Outlier rows
+    """
+    import numpy as np
+    import pandas as pd
+
+    df = df.copy()
+    df['x_bin'] = pd.cut(df[x_col], bins=bins)
+    outliers = []
+
+    for bin_interval, group in df.groupby('x_bin'):
+        if group.empty:
+            continue
+
+        # Use the bin midpoint to determine method
+        bin_mid = bin_interval.mid
+
+        if bin_mid < iqr_threshold:
+            # IQR method
+            q1 = group[y_col].quantile(0.25)
+            q3 = group[y_col].quantile(0.75)
+            iqr = q3 - q1
+            lower = q1 - 1.5 * iqr
+            upper = q3 + 1.5 * iqr
+            outliers.append(group[(group[y_col] < lower) | (group[y_col] > upper)])
+        else:
+            # MAD method
+            median = group[y_col].median()
+            mad = np.median(np.abs(group[y_col] - median))
+            if mad == 0:
+                continue
+            mad_score = np.abs(group[y_col] - median) / mad
+            outliers.append(group[mad_score > z_thresh])
+
+    return pd.concat(outliers) if outliers else pd.DataFrame()
+
 
 def visualize_correlations(df, top_n=10, corr_threshold=0.1, redundancy_threshold=0.9):
     import seaborn as sns
@@ -285,3 +421,9 @@ def plot_box_and_return_outliers(df, group_by_col, value_col, bins=10):
 
     outlier_df = pd.concat(outliers) if outliers else pd.DataFrame()
     return outlier_df
+
+if __name__ == '__main__':
+    history = fetchGenerationHistoryData('FR')
+    # sr_features, wind_features = visualize_correlations(history, top_n=15)
+    outliers = plot_density_with_outliers_auto_clip(history, 'Solar_Radiation', 'SR', quantile_clip=0.9)
+    outliers = plot_density_with_outliers_auto_clip(history, 'Wind_Speed_100m', 'WIND', quantile_clip=0.9)

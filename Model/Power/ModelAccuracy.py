@@ -5,8 +5,9 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 
 from Logger.Logger import mylogger
-from Model.Power.RESPowerGeneration_model import _add_time_features, getModelPipe, getGenerationModelData, \
-    fetchGenerationHistoryData
+from Model.Power.RESPowerGeneration_model import getModelPipe
+from Asset_Modeling.Energy_Modeling.data.data import getGenerationModelData, fetchGenerationHistoryData, \
+    _add_time_features
 
 
 def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 7, isShow=False):
