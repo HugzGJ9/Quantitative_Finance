@@ -24,6 +24,18 @@ Welcome to the **Quantitative Finance Library**, a Python-based toolkit for mode
 
 ---
 
+## :zap: Energy Dashboard
+
+### 1. RES Power Generation FR :
+- Displays daily renewable power generation in France over the years. https://hugzgj.grafana.net/public-dashboards/9d1e12a092da4f4c8cc27b8392735743
+
+### 2. Forecast vs Realized Power Generation FR :
+- Compares the morning forecast (generated in the project) with the evening forecast from RTE and the actual realized RES power generation in France. [https://hugzgj.grafana.net/public-dashboards/9d1e12a092da4f4c8cc27b8392735743](https://hugzgj.grafana.net/public-dashboards/62cfe7d7ef9540aba9d6998bb255de5a)
+
+---
+
+---
+
 ## 📈 Risk Exposure Analysis
 
 This library provides a detailed breakdown of portfolio risk. Below are sample visualizations of risk metrics:
