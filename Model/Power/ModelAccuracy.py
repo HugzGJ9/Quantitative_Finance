@@ -5,12 +5,11 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 
 from Logger.Logger import mylogger
-from Model.Power.RESPowerGeneration_model import _add_time_features, getModelPipe, getGenerationModelData
+from Model.Power.RESPowerGeneration_model import _add_time_features, getModelPipe, getGenerationModelData, \
+    fetchGenerationHistoryData
 
 
-def evaluate_model_accuracy(weather, res_generation, pipes, country="FR", holdout_days: int = 7, isShow=False):
-    hist = _add_time_features(pd.concat([weather, res_generation], axis=1).dropna(subset=weather.columns))
-    hist = hist.dropna()
+def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 7, isShow=False):
     cutoff_ts = hist.index.max() - pd.Timedelta(days=holdout_days)
     test_hist = hist[hist.index >= cutoff_ts]
 
@@ -83,9 +82,11 @@ def evaluate_model_accuracy(weather, res_generation, pipes, country="FR", holdou
     return metrics, holdout
 
 if __name__ == '__main__':
-    weather, res_generation = getGenerationModelData()
+    history = fetchGenerationHistoryData('FR')
     pipes = {
-        "model1": getModelPipe(model_name="model_RES_generation_LGBMR3"),
-        "model2": getModelPipe(model_name="model_RES_generation_XGBR3"),
+        "model1": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected_noOutliers"),
+        "model2": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected"),
+        "model3": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected_std"),
+
     }
-    evaluate_model_accuracy(weather, res_generation, pipes, isShow=True)
+    evaluate_model_accuracy(history, pipes, isShow=True)

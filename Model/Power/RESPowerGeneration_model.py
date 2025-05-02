@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 import os
 from typing import Dict, List
-
 import joblib
 import pandas as pd
 from lightgbm import LGBMRegressor
@@ -14,6 +12,8 @@ from Logger.Logger import mylogger
 from API.OPENMETEO.Config_class import cfg
 import numpy as np
 from xgboost import XGBRegressor
+
+from Model.Power.dataProcessing import visualize_correlations, plot_density_with_outliers_auto_clip
 
 
 def _add_time_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -32,18 +32,6 @@ def _add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df_copy["hour_cos"] = np.cos(2 * np.pi * df_copy.index.hour / 24)
     return df_copy
 
-TARGETS: Dict[str, List[str]] = {
-    "WIND": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-             'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
-             'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
-            'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure', 'is_day',
-             'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
-    "SR": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-             'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
-             'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
-            'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure', 'is_day',
-             'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
-}
 def _build_pipe(feats: List[str], model="LGBMRegressor") -> Pipeline:
     if model=="LGBMRegressor":
         return Pipeline([
@@ -71,20 +59,15 @@ def _build_pipe(feats: List[str], model="LGBMRegressor") -> Pipeline:
                 tree_method="hist"  # optional: speeds up training for medium/large datasets
             ))
         ])
-def train(df: pd.DataFrame, target: str, model_use="LGBMRegressor"):
-    feats = TARGETS[target]
-    mask = df[feats + [target]].notnull().all(axis=1)
-    X, y = df.loc[mask, feats], df.loc[mask, target]
+def train(df: pd.DataFrame, TARGETS, techno: str, model_use="LGBMRegressor"):
+    feats = TARGETS[techno]
+    mask = df[feats + [techno]].notnull().all(axis=1)
+    X, y = df.loc[mask, feats], df.loc[mask, techno]
     pipe = _build_pipe(feats, model=model_use)
     pipe.fit(X, y)
     return pipe
 
-def builGenerationModel(weather, res_generation, model_use="LGBMRegressor", country="FR", holdout_days:int=7, model_name='model_RES_generation') -> None:
-    weather = weather[~weather.index.duplicated(keep='first')]
-    res_generation = res_generation[~res_generation.index.duplicated(keep='first')]
-
-    hist = _add_time_features(pd.concat([weather, res_generation], axis=1).dropna(subset=weather.columns))
-    hist= hist.dropna()
+def builGenerationModel(hist, TARGETS, model_use="LGBMRegressor", country="FR", holdout_days:int=7, model_name='model_RES_generation') -> None:
     cutoff_ts = hist.index.max() - pd.Timedelta(days=holdout_days)
     train_hist = hist[hist.index < cutoff_ts]
 
@@ -94,16 +77,9 @@ def builGenerationModel(weather, res_generation, model_use="LGBMRegressor", coun
         train_hist.index.max(),
         len(train_hist))
 
-    models = {t: train(hist, t, model_use=model_use) for t in ("WIND", "SR")}
+    models = {t: train(hist, TARGETS, t, model_use=model_use) for t in ("WIND", "SR")}
     joblib.dump(models, f"models_pkl/{model_name}.pkl")
     return
-    # fc = fetch_weather_data(cfg, 'forecast')
-    # tomorrow = predict_tomorrow(models, fc)
-    # if tomorrow.empty:
-    #     mylogger.logger.warning("No complete forecast rows for tomorrow."); return
-    # avg = tomorrow["total_generation_mw"].mean()
-    # mylogger.logger.info("Average RES generation on %s: %.1f MW", tomorrow.time.dt.date.iloc[0], avg)
-    # print(tomorrow.head(24))
 
 def getModelPipe(model_name="model_RES_generation"):
     current_path = os.getcwd()
@@ -130,8 +106,68 @@ def getGenerationModelData(country='FR'):
 
     return weather, res_generation
 
+def fetchGenerationHistoryData(country='FR'):
+    weather, res_generation = getGenerationModelData(country)
+    weather = weather[~weather.index.duplicated(keep='first')]
+    res_generation = res_generation[~res_generation.index.duplicated(keep='first')]
+
+    hist = _add_time_features(pd.concat([weather, res_generation], axis=1).dropna(subset=weather.columns))
+    hist = hist.dropna()
+    max_SR_capa = hist['SR_capa'].max()
+    max_WIND_capa = hist['WIND_capa'].max()
+    hist['SR'] = hist['SR'] * (max_SR_capa / hist['SR_capa'])
+    hist['WIND'] = hist['WIND'] * (max_WIND_capa / hist['WIND_capa'])
+    # hist = hist.drop(columns=['SR_capa', 'WIND_capa'])
+    return hist
+
+
+# Example use of auto_quantile_clip integrated into the plotting function
+
 
 if __name__ == "__main__":
-    weather, res_generation = getGenerationModelData()
-    builGenerationModel(weather, res_generation, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR")
-    builGenerationModel(weather, res_generation, model_use="XGBRegressor", model_name="model_RES_generation_XGBR")
+    history = fetchGenerationHistoryData('FR')
+
+    sr_features, wind_features = visualize_correlations(history, top_n=15)
+
+    TARGETS: Dict[str, List[str]] = {
+        "WIND": wind_features,
+        "SR": sr_features,
+    }
+
+    outlier_indices = set()
+    for feature in sr_features:
+        outliers = plot_density_with_outliers_auto_clip(history, feature, 'SR')
+        outlier_indices.update(outliers.index.tolist())
+
+    for feature in wind_features:
+        outliers = plot_density_with_outliers_auto_clip(history, feature, 'WIND')
+        outlier_indices.update(outliers.index.tolist())
+    history_cleaned = history.drop(index=outlier_indices)
+    
+    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_selected")
+    builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_selected_noOutliers")
+
+    # features = list(history.columns)
+    # features = [x for x in features if x not in ['created_at', 'SR', 'WIND']]
+    # TARGETS: Dict[str, List[str]] = {
+    #     "WIND": features,
+    #     "SR": features,
+    # }
+    #
+    # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_all_std")
+    #
+    # TARGETS: Dict[str, List[str]] = {
+    #     "WIND": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
+    #              'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
+    #              'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
+    #              'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
+    #              'is_day',
+    #              'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
+    #     "SR": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
+    #            'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
+    #            'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
+    #            'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
+    #            'is_day',
+    #            'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
+    # }
+    # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_old_std")

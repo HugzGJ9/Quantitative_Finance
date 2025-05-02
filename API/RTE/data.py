@@ -85,9 +85,11 @@ def getAPIdata(APIname:str, logger=False)->pd.DataFrame:
         'start_date': yesterday,
         'end_date': today
     }
+    if APIname =='Actual Generation 15min':
+        response = requests.get(API_RTE[APIname]["token_url"], headers=headers, params=params)
+    else:
+        response = requests.get(API_RTE[APIname]["token_url"], headers=headers)
 
-    # Send request
-    response = requests.get(API_RTE[APIname]["token_url"], headers=headers, params=params)
     if logger:
         mylogger.logger.info(f"Status code: {response.status_code}")
 
