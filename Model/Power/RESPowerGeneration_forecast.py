@@ -10,7 +10,7 @@ from API.OPENMETEO.Config_class import cfg
 from API.OPENMETEO.data import getWeatherData
 from Asset_Modeling.Energy_Modeling.data.data import fetchRESCapacityData, _add_time_features
 
-from Model.Power.RESPowerGeneration_model import getModelPipe, TARGETS
+from Model.Power.RESPowerGeneration_model import getModelPipe
 
 
 def getWeatherForecastData(country='FR'):
@@ -28,12 +28,13 @@ def predictGeneration(models: Dict[str, Pipeline], fc: pd.DataFrame) -> pd.DataF
     df = fc[fc.index.date == tomorrow]
     if df.empty: return pd.DataFrame()
     feat = _add_time_features(df)
+    targets_solar = models['SR'].feature_names_in_
+    targets_wind = models['WIND'].feature_names_in_
+    wmask = feat[targets_wind].notnull().all(axis=1)
+    feat.loc[wmask, "WIND"] = models["WIND"].predict(feat.loc[wmask, targets_wind])
 
-    wmask = feat[TARGETS["WIND"]].notnull().all(axis=1)
-    feat.loc[wmask, "WIND"] = models["WIND"].predict(feat.loc[wmask, TARGETS["WIND"]])
-
-    dmask = (feat["is_day"] == 1) & feat[TARGETS["SR"]].notnull().all(axis=1)
-    feat.loc[dmask, "SR"] = models["SR"].predict(feat.loc[dmask, TARGETS["SR"]])
+    dmask = (feat["is_day"] == 1) & feat[targets_solar].notnull().all(axis=1)
+    feat.loc[dmask, "SR"] = models["SR"].predict(feat.loc[dmask, targets_solar])
     feat.loc[~dmask, "SR"] = 0.0
     feat["SR"] = feat["SR"].clip(lower=0)
 

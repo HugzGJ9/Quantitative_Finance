@@ -48,7 +48,7 @@ def train(df: pd.DataFrame, TARGETS, techno: str, model_use="LGBMRegressor"):
     pipe.fit(X, y)
     return pipe
 
-def builGenerationModel(hist, TARGETS, model_use="LGBMRegressor", country="FR", holdout_days:int=7, model_name='model_RES_generation') -> None:
+def builGenerationModel(hist, TARGETS, model_use="LGBMRegressor", country="FR", holdout_days:int=30, model_name='model_RES_generation') -> None:
     cutoff_ts = hist.index.max() - pd.Timedelta(days=holdout_days)
     train_hist = hist[hist.index < cutoff_ts]
 
@@ -79,7 +79,6 @@ def getModelPipe(model_name="model_RES_generation"):
 
 if __name__ == "__main__":
     history = fetchGenerationHistoryData('FR')
-
     sr_features, wind_features = visualize_correlations(history, top_n=15)
 
     TARGETS: Dict[str, List[str]] = {
@@ -88,19 +87,18 @@ if __name__ == "__main__":
     }
 
     outlier_indices = set()
-    outliers = plot_density_with_outliers_auto_clip(history, feature, 'SR')
+    outliers = plot_density_with_outliers_auto_clip(history, 'Solar_Radiation', 'SR', quantile_clip=0.9)
+    outlier_indices.update(outliers.index.tolist())
+    outliers = plot_density_with_outliers_auto_clip(history, 'Wind_Speed_100m', 'WIND', quantile_clip=0.9)
     outlier_indices.update(outliers.index.tolist())
 
-    for feature in wind_features:
-        outliers = plot_density_with_outliers_auto_clip(history, feature, 'WIND')
-        outlier_indices.update(outliers.index.tolist())
     history_cleaned = history.drop(index=outlier_indices)
-    
-    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_selected")
-    builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_selected_noOutliers")
+
+    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_fs")
+    builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_fs")
 
     # features = list(history.columns)
-    # features = [x for x in features if x not in ['created_at', 'SR', 'WIND']]
+    # features = [x for x in features if x not in ['create_at', 'SR', 'WIND']]
     # TARGETS: Dict[str, List[str]] = {
     #     "WIND": features,
     #     "SR": features,
@@ -108,18 +106,20 @@ if __name__ == "__main__":
     #
     # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_all_std")
     #
-    # TARGETS: Dict[str, List[str]] = {
-    #     "WIND": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-    #              'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
-    #              'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
-    #              'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
-    #              'is_day',
-    #              'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
-    #     "SR": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-    #            'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
-    #            'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
-    #            'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
-    #            'is_day',
-    #            'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
-    # }
-    # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_old_std")
+    TARGETS: Dict[str, List[str]] = {
+        "WIND": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
+                 'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
+                 'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
+                 'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
+                 'is_day',
+                 'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
+        "SR": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
+               'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
+               'Cloud_Cover_Mid', 'Cloud_Cover_High', 'Temperature_2m', 'Relative_Humidity_2m', 'Dew_Point_2m',
+               'Precipitation', 'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m', 'Surface_Pressure',
+               'is_day',
+               'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
+    }
+    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_old")
+    builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_old")
+

@@ -79,7 +79,7 @@ def buildAuctionDAEmail(title, tables, img_data, image_cid):
     {table_price_html}
     """
 
-    recipients = ['hugo.lambert.perso@gmail.com']
+    recipients = ['hugo.lambert.perso@gmail.com', 'hugo.lambert.perso@gmail.com']
     setAutoemail(recipients, title, body, image_buffers=[img_data], image_cids=[image_cid])
 
 

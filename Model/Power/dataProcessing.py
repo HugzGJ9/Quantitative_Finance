@@ -190,9 +190,7 @@ def detect_outliers_residual_iqr_lowwind(
     """
     df = df.copy().dropna(subset=[x_col, y_col])
 
-    # ---------------------------
-    # Residual-based detection
-    # ---------------------------
+
     X = df[[x_col]].values
     y = df[y_col].values
     poly = PolynomialFeatures(degree=degree)
@@ -211,9 +209,6 @@ def detect_outliers_residual_iqr_lowwind(
     df['mad_score'] = mad_score
     model_outliers = df[df['mad_score'] > z_thresh]
 
-    # ---------------------------
-    # IQR-based detection for low wind
-    # ---------------------------
     lowwind_df = df[df[x_col] < low_speed_thresh].copy()
     lowwind_df['bin'] = pd.cut(lowwind_df[x_col], bins=iqr_bins)
 
@@ -230,9 +225,6 @@ def detect_outliers_residual_iqr_lowwind(
 
     iqr_outliers_df = pd.concat(iqr_outliers) if iqr_outliers else pd.DataFrame()
 
-    # ---------------------------
-    # Combine both
-    # ---------------------------
     combined_outliers = pd.concat([model_outliers, iqr_outliers_df]).drop_duplicates()
 
     return combined_outliers
@@ -421,6 +413,50 @@ def plot_box_and_return_outliers(df, group_by_col, value_col, bins=10):
 
     outlier_df = pd.concat(outliers) if outliers else pd.DataFrame()
     return outlier_df
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Define feature sets (customize as needed)
+wind_features = [
+    'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m',
+    'Surface_Pressure', 'Cloud_Cover', 'WIND_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'
+]
+
+sr_features = [
+    'Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
+    'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance',
+    'Cloud_Cover', 'Temperature_2m', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'
+]
+
+
+def run_pca(feature_list, label):
+    X = history[feature_list]
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    pca = PCA(n_components=None)
+    X_pca = pca.fit_transform(X_scaled)
+
+    # Plot
+    plt.figure(figsize=(8, 5))
+    plt.plot(np.cumsum(pca.explained_variance_ratio_), marker='o')
+    plt.xlabel('Number of Principal Components')
+    plt.ylabel('Cumulative Explained Variance')
+    plt.title(f'{label} Forecasting - Explained Variance')
+    plt.grid(True)
+    plt.show()
+
+    # Output loadings
+    loadings = pd.DataFrame(pca.components_.T, index=feature_list,
+                            columns=[f'PC{i + 1}' for i in range(X_pca.shape[1])])
+    print(f"\nTop contributing features to PC1 for {label}:")
+    print(loadings['PC1'].sort_values(key=abs, ascending=False).head(5))
+
 
 if __name__ == '__main__':
     history = fetchGenerationHistoryData('FR')

@@ -6,11 +6,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolu
 
 from Logger.Logger import mylogger
 from Model.Power.RESPowerGeneration_model import getModelPipe
-from Asset_Modeling.Energy_Modeling.data.data import getGenerationModelData, fetchGenerationHistoryData, \
-    _add_time_features
+from Asset_Modeling.Energy_Modeling.data.data import fetchGenerationHistoryData
 
 
-def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 7, isShow=False):
+def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 30, isShow=False):
     cutoff_ts = hist.index.max() - pd.Timedelta(days=holdout_days)
     test_hist = hist[hist.index >= cutoff_ts]
 
@@ -85,9 +84,11 @@ def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 7, is
 if __name__ == '__main__':
     history = fetchGenerationHistoryData('FR')
     pipes = {
-        "model1": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected_noOutliers"),
-        "model2": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected"),
-        "model3": getModelPipe(model_name="model_RES_generation_LGBMR_features_selected_std"),
+        "model1": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_fs"),
+        "model2": getModelPipe(model_name="model_RES_generation_LGBMR_fs"),
+        "model3": getModelPipe(model_name="model_RES_generation_LGBMR_old"),
+        "model4": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_old"),
+        "model5": getModelPipe(model_name="model_RES_generation_LGBMR"),
 
     }
     evaluate_model_accuracy(history, pipes, isShow=True)
