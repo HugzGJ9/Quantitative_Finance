@@ -11,7 +11,7 @@ from Asset_Modeling.Energy_Modeling.data.data import fetchGenerationHistoryData
 from Logger.Logger import mylogger
 from API.OPENMETEO.Config_class import cfg
 from xgboost import XGBRegressor
-from Model.Power.dataProcessing import visualize_correlations, plot_density_with_outliers_auto_clip
+from Model.Power.dataProcessing import visualize_correlations, dataRESGenerationCleaning
 
 def _build_pipe(feats: List[str], model="LGBMRegressor") -> Pipeline:
     if model=="LGBMRegressor":
@@ -79,33 +79,44 @@ def getModelPipe(model_name="model_RES_generation"):
 
 if __name__ == "__main__":
     history = fetchGenerationHistoryData('FR')
-    sr_features, wind_features = visualize_correlations(history, top_n=15)
-
-    TARGETS: Dict[str, List[str]] = {
-        "WIND": wind_features,
-        "SR": sr_features,
-    }
+    # sr_features, wind_features = visualize_correlations(history, top_n=15)
+    # sr_features = ['Solar_Radiation',
+    #             'Diffuse_Radiation',
+    #             'hour_cos',
+    #             'Direct_Normal_Irradiance',
+    #             'is_day',
+    #             'Relative_Humidity_2m',
+    #             'Temperature_2m',
+    #             'WIND_capa',
+    #             'month_cos',
+    #             'Wind_Speed_100m',
+    #             'Dew_Point_2m',
+    #             'Wind_Gusts_10m']
+    # TARGETS: Dict[str, List[str]] = {
+    #     "WIND": wind_features,
+    #     "SR": sr_features,
+    # }
 
     outlier_indices = set()
-    outliers = plot_density_with_outliers_auto_clip(history, 'Solar_Radiation', 'SR', quantile_clip=0.9)
+    outliers = dataRESGenerationCleaning(history, 'Solar_Radiation', 'SR', quantile_clip=0.9)
     outlier_indices.update(outliers.index.tolist())
-    outliers = plot_density_with_outliers_auto_clip(history, 'Wind_Speed_100m', 'WIND', quantile_clip=0.9)
+    outliers = dataRESGenerationCleaning(history, 'Wind_Speed_100m', 'WIND', quantile_clip=0.9)
     outlier_indices.update(outliers.index.tolist())
 
     history_cleaned = history.drop(index=outlier_indices)
 
-    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_fs")
-    builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_fs")
-
-    # features = list(history.columns)
-    # features = [x for x in features if x not in ['create_at', 'SR', 'WIND']]
-    # TARGETS: Dict[str, List[str]] = {
-    #     "WIND": features,
-    #     "SR": features,
-    # }
+    # builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_fs")
+    # builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_fs_ns")
     #
-    # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_all_std")
-    #
+    # # features = list(history.columns)
+    # # features = [x for x in features if x not in ['create_at', 'SR', 'WIND']]
+    # # TARGETS: Dict[str, List[str]] = {
+    # #     "WIND": features,
+    # #     "SR": features,
+    # # }
+    # #
+    # # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_all_std")
+    # #
     TARGETS: Dict[str, List[str]] = {
         "WIND": ['Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
                  'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance', 'Cloud_Cover', 'Cloud_Cover_Low',
@@ -120,6 +131,6 @@ if __name__ == "__main__":
                'is_day',
                'month', 'hour', 'WIND_capa', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'],
     }
-    builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_old")
+    # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_old_ns")
     builGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_old")
 

@@ -1,6 +1,6 @@
 from entsoe import EntsoePandasClient
 import pandas as pd
-from API.ENTSOE.EntsoePandasClient import CLIENT
+from API.ENTSOE.client import CLIENT
 
 def getPriceDaHist(country='FR', start=pd.Timestamp("2017-04-01", tz="Europe/Paris"), end=pd.Timestamp("2025-04-01", tz="Europe/Paris")):
     df = pd.DataFrame(CLIENT.query_day_ahead_prices(

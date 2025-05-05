@@ -110,7 +110,7 @@ def _add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df_copy["month"] = df_copy.index.astype(str).str[5:7].astype(int)
     df_copy["hour"] = df_copy.index.astype(str).str[11:13].astype(int)
     try:
-        df_copy['SR'] = df_copy.apply(lambda row: 0.0 if row["Solar_Radiation"] == 0.0 else row['SR'], axis=1)
+        df_copy['SR'] = df_copy.apply(lambda row: 0.0 if row["Solar_Radiation"] < 3.0 else row['SR'], axis=1)
     except KeyError:
         pass
     df_copy["month_sin"] = np.sin(2 * np.pi * df_copy.index.month / 12)
