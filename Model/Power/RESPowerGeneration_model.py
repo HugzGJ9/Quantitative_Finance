@@ -23,8 +23,8 @@ def _build_pipe(feats: List[str], model="LGBMRegressor") -> Pipeline:
 
     if model == "LGBMRegressor":
         model_obj = LGBMRegressor(
-            n_estimators=500,
-            learning_rate=0.05,
+            n_estimators=999,
+            learning_rate=0.1,
             num_leaves=64,
             subsample=0.8,
             colsample_bytree=0.8,
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     # # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_features_all_std")
     # #
     # builGenerationModel(history, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_old_ns")
-    # buildGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned")
+    buildGenerationModel(history_cleaned, TARGETS, model_use="LGBMRegressor", model_name="model_RES_generation_LGBMR_cleaned_pt")
     # buildGenerationModel(history_cleaned, TARGETS, model_use="XGBRegressor", model_name="model_RES_generation_XGBR_cleaned")
-    buildGenerationModel(history_cleaned, TARGETS, model_use="DNNRegressor", model_name="model_RES_generation_DNNR_cleaned")
+    # buildGenerationModel(history_cleaned, TARGETS, model_use="DNNRegressor", model_name="model_RES_generation_DNNR_cleaned")
 
