@@ -9,7 +9,7 @@ from Model.Power.RESPowerGeneration_model import getModelPipe
 from Asset_Modeling.Energy_Modeling.data.data import fetchGenerationHistoryData
 
 
-def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 30, isShow=False):
+def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 7, isShow=False):
     cutoff_ts = hist.index.max() - pd.Timedelta(days=holdout_days)
     test_hist = hist[hist.index >= cutoff_ts]
 
@@ -84,11 +84,19 @@ def evaluate_model_accuracy(hist, pipes, country="FR", holdout_days: int = 30, i
 if __name__ == '__main__':
     history = fetchGenerationHistoryData('FR')
     pipes = {
-        "model1": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_fs"),
-        "model2": getModelPipe(model_name="model_RES_generation_LGBMR_fs"),
-        "model3": getModelPipe(model_name="model_RES_generation_LGBMR_old"),
-        "model4": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_old"),
-        "model5": getModelPipe(model_name="model_RES_generation_LGBMR"),
+        # "model1": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_fs"),
+        # "model1_ns": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned_fs_ns"),
+        #
+        # "model2": getModelPipe(model_name="model_RES_generation_LGBMR_fs"),
+        # "model2_ns": getModelPipe(model_name="model_RES_generation_LGBMR_fs_ns"),
+        #
+        # "model3": getModelPipe(model_name="model_RES_generation_LGBMR_old"),
+        # "model1": getModelPipe(model_name="model_RES_generation_LGBMR_fs"),
+        # "model1_ns": getModelPipe(model_name="model_RES_generation_LGBMR_fs_ns"),
+        "LGBMR": getModelPipe(model_name="model_RES_generation_LGBMR_cleaned"),
+        "XGBR": getModelPipe(model_name="model_RES_generation_XGBR_cleaned"),
+        "DNNR": getModelPipe(model_name="model_RES_generation_DNNR_cleaned"),
+        "DNNR2": getModelPipe(model_name="model_RES_generation_DNNR_cleaned2"),
 
     }
     evaluate_model_accuracy(history, pipes, isShow=True)

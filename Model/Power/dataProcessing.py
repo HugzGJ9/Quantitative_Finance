@@ -1,12 +1,15 @@
 from __future__ import annotations
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
-import seaborn as sns
-from matplotlib import pyplot as plt
-
 from Logger.Logger import mylogger
 from Asset_Modeling.Energy_Modeling.data.data import fetchGenerationHistoryData
-
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import numpy as np
+import plotly.io as pio
+pio.renderers.default = 'browser'
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 def plot_hexbin_density(df, x_col, y_col, gridsize=60, cmap='YlGnBu', quantile_clip=None):
     """
     Plots a hexbin density plot for given x and y columns.
@@ -48,11 +51,12 @@ def dataRESGenerationCleaning(df, x_col, y_col, gridsize=60, cmap='YlGnBu', quan
         return pd.DataFrame()
 
     # Select the appropriate outlier detection method
-    if y_col == 'SR':
+    if x_col == 'Solar_Radiation':
         outlier_df = outliersDetectionSR(df, x_col, y_col, bins=bins)
-    else:  # y_col == 'WIND'
+    elif x_col == 'Wind_Speed_100m':  # y_col == 'WIND'
         outlier_df = outliersDetectionWIND(df, x_col, y_col)
-
+    else:
+        outlier_df = plot_box_and_return_outliers(df, x_col, y_col, bins=10)
     # Plot hexbin and get used clip
     used_clip = plot_hexbin_density(df, x_col, y_col, gridsize, cmap, quantile_clip)
 
@@ -139,8 +143,8 @@ def detect_outliers_iqr(df, x_col, y_col, bins=20):
 
 def outliersDetectionWIND(
     df, x_col='Wind_Speed', y_col='Wind_Generation',
-    degree=3, z_thresh=3.8,
-    low_speed_thresh=10.0, iqr_bins=10
+    degree=3, z_thresh=5.0,
+    low_speed_thresh=16.0, iqr_bins=10
 ):
 
     df = df.copy().dropna(subset=[x_col, y_col])
@@ -219,7 +223,70 @@ def detect_outliers_mad(df, x_col, y_col, bins=100, z_thresh=2.5):
 
     return pd.concat(outliers) if outliers else pd.DataFrame()
 
-def outliersDetectionSR(df, x_col, y_col, bins=20, iqr_threshold=10, z_thresh=2.5):
+
+def ResCleaningPlot(df, df_cleaned, title='RES Cleaning', show=True):
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        subplot_titles=('Wind Generation — Raw vs Cleaned', 'Solar Radiation — Raw vs Cleaned'),
+        vertical_spacing=0.1
+    )
+
+    # WIND plot
+    fig.add_trace(
+        go.Scatter(
+            x=df.index, y=df['WIND'],
+            mode='lines', name='WIND (raw)',
+            line=dict(color='green', width=1),
+            opacity=0.4
+        ), row=1, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_cleaned.index, y=df_cleaned['WIND'],
+            mode='lines', name='WIND (cleaned)',
+            line=dict(color='blue', width=1.5)
+        ), row=1, col=1
+    )
+
+    # SR plot
+    fig.add_trace(
+        go.Scatter(
+            x=df.index, y=df['SR'],
+            mode='lines', name='SR (raw)',
+            line=dict(color='orange', width=1),
+            opacity=0.4
+        ), row=2, col=1
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_cleaned.index, y=df_cleaned['SR'],
+            mode='lines', name='SR (cleaned)',
+            line=dict(color='red', width=1.5)
+        ), row=2, col=1
+    )
+
+    # Layout
+    fig.update_layout(
+        height=700,
+        title_text=title,
+        hovermode='x unified',
+        template='plotly_white',
+        showlegend=True
+    )
+
+    fig.update_yaxes(title_text='Wind Generation (MW)', row=1, col=1)
+    fig.update_yaxes(title_text='Solar Generation (MW)', row=2, col=1)
+    fig.update_xaxes(title_text='Datetime', row=2, col=1)
+
+    if show:
+        fig.show()
+
+    return fig
+
+def outliersDetectionSR(df, x_col, y_col, bins=20, iqr_threshold=10, z_thresh=4.0):
     """
     Detect outliers in y_col using a hybrid method:
     - IQR for low x_col bins (e.g., low solar radiation)
@@ -334,8 +401,51 @@ def visualize_correlations(df, top_n=10, corr_threshold=0.1, redundancy_threshol
     return sr_features, wind_features
 
 
-def plot_box_and_return_outliers(df, group_by_col, value_col, bins=10):
-    # Bin if necessary
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+def plot_box_and_return_outliers(
+        df,
+        group_by_col,
+        value_col,
+        bins=10,
+        figsize=(12, 6),
+        palette="Set2",
+        title=None,
+        show_plot=True
+):
+    """
+    Plots a boxplot of `value_col` grouped by `group_by_col` (optionally binned)
+    and returns a DataFrame of outliers.
+
+    Parameters:
+    ----------
+    df : pd.DataFrame
+        Input DataFrame.
+    group_by_col : str
+        Column to group by.
+    value_col : str
+        Numerical column to plot and analyze.
+    bins : int, optional
+        Number of bins if `group_by_col` is numeric and has many unique values.
+    figsize : tuple, optional
+        Size of the figure.
+    palette : str or list, optional
+        Color palette for seaborn.
+    title : str, optional
+        Custom plot title.
+    show_plot : bool, optional
+        Whether to display the plot.
+
+    Returns:
+    -------
+    pd.DataFrame
+        DataFrame containing outlier rows.
+    """
+
+    # Create bins if needed
     if pd.api.types.is_numeric_dtype(df[group_by_col]) and df[group_by_col].nunique() > 20:
         bin_col = f"{group_by_col}_bin"
         df[bin_col] = pd.cut(df[group_by_col], bins=bins)
@@ -343,51 +453,41 @@ def plot_box_and_return_outliers(df, group_by_col, value_col, bins=10):
     else:
         group_col = group_by_col
 
-    # Create boxplot
-    plt.figure(figsize=(10, 5))
-    sns.boxplot(x=group_col, y=value_col, data=df, showmeans=True,
-                meanprops={"marker": "o", "markerfacecolor": "white", "markeredgecolor": "black"},
-                boxprops=dict(alpha=0.6),
-                flierprops=dict(marker='o', color='red', alpha=0.4))
-    plt.title(f'Boxplot of {value_col} by {group_by_col}')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.show()
+    # Initialize the plot
+    plt.figure(figsize=figsize)
+    sns.boxplot(
+        x=group_col,
+        y=value_col,
+        data=df,
+        showmeans=True,
+        meanprops={"marker": "o", "markerfacecolor": "white", "markeredgecolor": "black"},
+        boxprops=dict(alpha=0.6),
+        flierprops=dict(marker='o', color='red', alpha=0.5),
+        palette=palette
+    )
 
-    # Compute outliers
+    # Set plot titles and layout
+    plt.title(title or f'Boxplot of {value_col} by {group_by_col}', fontsize=14)
+    plt.xlabel(group_col, fontsize=12)
+    plt.ylabel(value_col, fontsize=12)
+    plt.xticks(rotation=45)
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
+
+    if show_plot:
+        plt.show()
+
+    # Detect outliers using the IQR method
     outliers = []
-    grouped = df.groupby(group_col)
-    for _, group in grouped:
+    for _, group in df.groupby(group_col):
         q1 = group[value_col].quantile(0.25)
         q3 = group[value_col].quantile(0.75)
         iqr = q3 - q1
-        lower = q1 - 1.5 * iqr
-        upper = q3 + 1.5 * iqr
-        outliers.append(group[(group[value_col] < lower) | (group[value_col] > upper)])
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        outliers.append(group[(group[value_col] < lower_bound) | (group[value_col] > upper_bound)])
 
-    outlier_df = pd.concat(outliers) if outliers else pd.DataFrame()
-    return outlier_df
-
-
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Define feature sets (customize as needed)
-wind_features = [
-    'Wind_Speed_100m', 'Wind_Direction_100m', 'Wind_Gusts_10m',
-    'Surface_Pressure', 'Cloud_Cover', 'WIND_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'
-]
-
-sr_features = [
-    'Solar_Radiation', 'Direct_Radiation', 'Diffuse_Radiation',
-    'Direct_Normal_Irradiance', 'Global_Tilted_Irradiance',
-    'Cloud_Cover', 'Temperature_2m', 'SR_capa', 'month_sin', 'month_cos', 'hour_sin', 'hour_cos'
-]
-
+    return pd.concat(outliers) if outliers else pd.DataFrame()
 
 def run_pca(feature_list, label):
     X = history[feature_list]
@@ -413,6 +513,17 @@ def run_pca(feature_list, label):
     print(loadings['PC1'].sort_values(key=abs, ascending=False).head(5))
 
 
+from sklearn.ensemble import IsolationForest
+
+def detect_multivariate_outliers_isoforest(df, contamination=0.05):
+    iso = IsolationForest(contamination=contamination, random_state=42)
+    preds = iso.fit_predict(df.select_dtypes(include='number'))
+    df = pd.DataFrame(pd.Series(preds == -1, index=df.index))
+    df.columns = ['isOutlier']
+    outliers_df = df[df['isOutlier'] == True]
+    return outliers_df
+
+
 if __name__ == '__main__':
     history = fetchGenerationHistoryData('FR')
     # sr_features, wind_features = visualize_correlations(history, top_n=15)
@@ -424,9 +535,15 @@ if __name__ == '__main__':
     outliers = dataRESGenerationCleaning(history, 'Wind_Speed_100m', 'WIND', quantile_clip=0.9)
     outlier_indices.update(outliers.index.tolist())
 
+    outliers = detect_multivariate_outliers_isoforest(history)
+    outlier_indices.update(outliers.index.tolist())
 
     history_cleaned = history.drop(index=outlier_indices)
     plot_hexbin_density(history_cleaned, 'Solar_Radiation', 'SR')
     plt.show()
     plot_hexbin_density(history_cleaned, 'Wind_Speed_100m', 'WIND')
     plt.show()
+
+    ResCleaningPlot(history, history_cleaned, title='RES Cleaning', show=True)
+
+

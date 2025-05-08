@@ -33,7 +33,8 @@ def predictGeneration(models: Dict[str, Pipeline], fc: pd.DataFrame) -> pd.DataF
     wmask = feat[targets_wind].notnull().all(axis=1)
     feat.loc[wmask, "WIND"] = models["WIND"].predict(feat.loc[wmask, targets_wind])
 
-    dmask = (feat["is_day"] == 1) & feat[targets_solar].notnull().all(axis=1)
+    # dmask = (feat["is_day"] == 1) & feat[targets_solar].notnull().all(axis=1)
+    dmask = feat[targets_solar].notnull().all(axis=1)
     feat.loc[dmask, "SR"] = models["SR"].predict(feat.loc[dmask, targets_solar])
     feat.loc[~dmask, "SR"] = 0.0
     feat["SR"] = feat["SR"].clip(lower=0)
