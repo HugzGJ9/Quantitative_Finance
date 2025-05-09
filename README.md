@@ -32,7 +32,8 @@ Welcome to the **Quantitative Finance Library**, a Python-based toolkit for mode
 ### 2. Forecast vs Realized Power Generation FR :
 - Compares the morning forecast (generated in the project) with the evening forecast from RTE and the actual realized RES power generation in France. [https://hugzgj.grafana.net/public-dashboards/9d1e12a092da4f4c8cc27b8392735743](https://hugzgj.grafana.net/public-dashboards/62cfe7d7ef9540aba9d6998bb255de5a)
 
----
+### 3. RES Capture Rate FR :
+- Show monthly capture rate for renewable asset per month in France. https://hugzgj.grafana.net/public-dashboards/3186096d600945fd842f67baa137a736
 
 ---
 
