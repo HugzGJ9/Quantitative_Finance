@@ -2,6 +2,7 @@ import numpy as np
 from supabase import create_client
 import pandas as pd
 
+from API.SUPABASE.prices import CALPRICES
 from Keypass.key_pass import API_SUPABASE
 from API.ENTSOE.data import getGenerationData
 from Logger.Logger import mylogger
@@ -19,6 +20,11 @@ def getAccessSupabase(App: str):
 def getDfSupabase(db_name):
     supabase = getAccessSupabase(db_name)
     df = pd.DataFrame(supabase.table(db_name).select("*").execute().data)
+    return df
+def getRowsSupabase(db_name, ids):
+    supabase = getAccessSupabase(db_name)
+    response = supabase.table(db_name).select("*").in_('id', ids).execute()
+    df = pd.DataFrame(response.data)
     return df
 def removeAllRowsSupabase(db_name):
     supabase = getAccessSupabase(db_name)
@@ -83,10 +89,8 @@ if __name__ == '__main__':
     # data.index = data.index.tz_convert('UTC')
     # updateDfSupabase(data, 'GenerationFR')
     # removeAllRowsSupabase('GenerationFR')
-    now = pd.Timestamp.now(tz='Europe/Paris')
-    yesterday = now.normalize() - pd.Timedelta(days=1)
-    df = getGenerationData(country='FR', start=yesterday, end=now)
-    df = df[['SR', 'WIND']]
-    df.columns = ['HUGO_SR', 'HUGO_WIND']
-    df.index = df.index.tz_convert('UTC')
-    updateDfSupabase(df, 'ForecastGenerationFR')
+    # now = pd.Timestamp.now(tz='Europe/Paris')
+    # yesterday = now.normalize() - pd.Timedelta(days=1)
+    # df = getGenerationData(country='FR', start=yesterday, end=now)
+    df = CALPRICES
+    insertDfSupabase(df, 'CALPowerPriceFR')
