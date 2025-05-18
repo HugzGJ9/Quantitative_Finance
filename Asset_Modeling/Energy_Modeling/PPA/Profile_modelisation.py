@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from scipy.optimize import curve_fit
+from API.SUPABASE.client import getDfSupabase
 #INFORMATION REGARDING PROFILE DATA:
 #Location	Subdivision	            Latitude	Longitude	kWh/day Summer	kWh/day Autumn	kWh/day Winter	kWh/day Spring	Panel Tilt Angle
 #Montluçon	Auvergne-Rhône-Alpes	46.3311	    2.5985	        5.82	        3.10	        1.52	        5.09	    40°     South
@@ -30,7 +31,62 @@ SR_LF_Montlucon2 = {
 }
 
 
+def sigmoid(x, L, x0, k, b):
+    return L / (1 + np.exp(-k * (x - x0))) + b
+def polyreg(x, a, b, c, d):
+    y = a*x**3 + b*x**2 + c*x + d
+    return y
+def WIND_LoadFactor_FR():
+    wind_speed = np.array([
+        3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5,
+        8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5,
+        13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5,
+        18, 18.5, 19, 19.5, 20, 20.5, 21, 21.5, 22, 22.5, 23
+    ])
+    generation_pct = np.array([
+        1.0, 2.9, 5.3, 8.2, 11.7, 15.9, 21.0, 27.0, 34.0, 41.9,
+        51.0, 61.0, 71.9, 83.0, 92.4, 97.6, 99.5, 99.9, 100.0, 100.0,
+        100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0,
+        100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0
+    ])
 
+    y_data = generation_pct / 100.0
+    p0 = [1, 9, 1, 0]
+    params, _ = curve_fit(sigmoid, wind_speed, y_data, p0)
+    return params
+
+
+def SOLAR_LoadFactor_FR(isShow=False):
+    weather = getDfSupabase("WeatherFR")
+    weather["id"] = pd.to_datetime(weather["id"], utc=True)
+    weather = (weather
+               .set_index("id")
+               .sort_index()
+               .loc[:, ["Solar_Radiation"]])
+    df = weather.groupby([weather.index.month, weather.index.hour]).mean()
+    df.index.set_names(['month', 'hour'], inplace=True)
+    f_reset = df.reset_index()
+    # Step 3: Melt SR_LoadFactor_FR2 to long format
+    load_factor_long = SR_LoadFactor_FR2.drop(columns="Hour").reset_index().melt(
+        id_vars='index',
+        var_name='month',
+        value_name='Load_Factor'
+    )
+    load_factor_long.rename(columns={'index': 'hour'}, inplace=True)
+    # Step 4: Ensure types match
+    load_factor_long['month'] = load_factor_long['month'].astype(int)
+    load_factor_long['hour'] = load_factor_long['hour'].astype(int)
+    # Step 5: Merge
+    merged = pd.merge(f_reset, load_factor_long, how='left', on=['month', 'hour'])
+    # Step 6: (Optional) Set back to MultiIndex
+    merged.set_index(['month', 'hour'], inplace=True)
+    params = np.polyfit(merged['Solar_Radiation'], merged['Load_Factor'], 3)
+    if isShow:
+        plt.scatter(merged['Solar_Radiation'], merged['Load_Factor'])
+        y_hat = np.poly1d(params)(merged['Solar_Radiation'])
+        plt.plot(merged['Solar_Radiation'], y_hat, "r--", lw=1)
+        plt.show()
+    return params
 # Create final dataframe
 SR_LoadFactor_FR = pd.DataFrame({
     "Hour": [f"{h:02}:00" for h in range(24)],
@@ -42,3 +98,6 @@ SR_LoadFactor_FR = pd.DataFrame({
 
 SR_LoadFactor_FR2 = pd.DataFrame(SR_LF_Montlucon2)
 SR_LoadFactor_FR2['Hour'] = [f"{h:02}:00" for h in range(24)]
+
+if __name__ == '__main__':
+    WIND_LoadFactor_FR()

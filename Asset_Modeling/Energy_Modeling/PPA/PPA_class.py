@@ -6,7 +6,7 @@ import pandas as pd
 
 from API.SUPABASE.client import getDfSupabase, getAccessSupabase, getRowsSupabase
 from Asset_Modeling.Energy_Modeling.PPA.ComputeRES_shape import AVG_price, VWA_price
-from Asset_Modeling.Energy_Modeling.PPA.stats import buildSyntheticGeneration
+from Asset_Modeling.Energy_Modeling.PPA.stats import buildSyntheticGenerationSR, buildSyntheticGenerationWIND
 from Logger.Logger import mylogger
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 def datetime_generation(start_date: str, end_date: str) -> pd.DatetimeIndex:
@@ -43,11 +43,7 @@ class PPA():
             self.p50 = row.iloc[0]['p50']
 
     def buildProxy(self):
-        """
-        Build an hourly solar-generation proxy whose mean for *each*
-        season-hour combination matches SR_LoadFactor_FR.
-        Stores result in `self.proxy` (column 'generation_mw') and returns it.
-        """
+
         if not self.proxy.empty:
             mylogger.logger.warning('Proxy TS already set.')
             return
@@ -56,32 +52,40 @@ class PPA():
                 raise NotImplementedError("FR only")
 
             import pandas as pd
-            from Profile_modelisation import SR_LoadFactor_FR2
+            if self.techno == "SR":
+                weather = getDfSupabase("WeatherFR")
+                weather["id"] = pd.to_datetime(weather["id"], utc=True)
+                weather = (weather
+                           .set_index("id")
+                           .sort_index()
+                           .loc[:, ["Solar_Radiation"]])
 
-            weather = getDfSupabase("WeatherFR")
-            weather["id"] = pd.to_datetime(weather["id"], utc=True)
+                commissioning = pd.to_datetime(self.start_date, dayfirst=True, utc=True)
+                weather = weather.loc[: commissioning - pd.Timedelta(seconds=1)]
 
-            weather = (weather
-                       .set_index("id")
-                       .sort_index()
-                       .loc[:, ["Solar_Radiation"]])
+                weather.index = weather.index.tz_convert('Europe/Paris')
+                generation = buildSyntheticGenerationSR(weather, capacity=self.capacity)
+                generation = generation.drop(columns=['Solar_Radiation'])
+                self.proxy = generation
+                self.proxy = self.proxy.sort_index()
 
-            commissioning = pd.to_datetime(self.start_date, dayfirst=True, utc=True)
-            weather = weather.loc[: commissioning - pd.Timedelta(seconds=1)]
+            elif self.techno == "WIND":
+                weather = getDfSupabase("WeatherFR")
+                weather["id"] = pd.to_datetime(weather["id"], utc=True)
 
-            weather.index = weather.index.tz_convert('Europe/Paris')
-            weather['hour'] = weather.index.hour
-            for month in list(range(1, 13, 1)):
-                mylogger.logger.info(f'{month=}')
-                for hour in list(range(0, 24, 1)):
-                    mylogger.logger.info(f'{hour=}')
+                weather = (weather
+                           .set_index("id")
+                           .sort_index()
+                           .loc[:, ["Wind_Speed_100m"]])
 
-                    df = weather[(weather['hour'] == hour) & (weather.index.month == month)]
-                    mean_target = SR_LoadFactor_FR2[month][SR_LoadFactor_FR2.index == hour].values[0] * self.capacity
+                commissioning = pd.to_datetime(self.start_date, dayfirst=True, utc=True)
+                weather = weather.loc[: commissioning - pd.Timedelta(seconds=1)]
 
-                    gen_temp = buildSyntheticGeneration(df, mean_target, capacity=self.capacity, sat_threshold=850)
-                    self.proxy = pd.concat([self.proxy, gen_temp[['generation']]], ignore_index=False)
-            self.proxy = self.proxy.sort_index()
+                weather.index = weather.index.tz_convert('Europe/Paris')
+                generation = buildSyntheticGenerationWIND(weather, self.capacity)
+                generation = generation.drop(columns=['Wind_Speed_100m'])
+                self.proxy = generation
+                self.proxy = self.proxy.sort_index()
             return self.proxy
 
     def saveInstance(self):
@@ -101,8 +105,6 @@ class PPA():
         }])
 
         instance.set_index('id')
-        # supabase.table('PPA').delete().in_('id', instance.index).execute()
-
         for col in instance.columns:
             if pd.api.types.is_datetime64_any_dtype(instance[col]):
                 instance[col] = instance[col].dt.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -159,38 +161,44 @@ class PPA():
                 vwavg_price = VWA_price(df_temp)
                 yearly_capture[str(y)] = {'average price': avg_price, 'VWA price': vwavg_price,
                                              'Capture rate': (vwavg_price / avg_price * 100)}
-            return yearly_capture
+
+            df = pd.DataFrame.from_dict(yearly_capture)
+            df =df.transpose
+            return df
 
     def showPowerCurve(self):
         from Model.Power.dataProcessing import plot_hexbin_density
-
         weather = getDfSupabase("WeatherFR")
         weather["id"] = pd.to_datetime(weather["id"], utc=True)
-        weather['id'] = weather['id'].dt.tz_convert('Europe/Paris')
-
+        weather["id"] = weather["id"].dt.tz_convert("Europe/Paris")
+        x = "Solar_Radiation" if self.techno == "SR" else "Wind_Speed_100m"
         weather = (weather
                    .set_index("id")
                    .sort_index()
-                   .loc[:, ["Solar_Radiation"]])
+                   .loc[:, [x]])
         weather = weather[~weather.index.duplicated(keep='first')]
-        df = pd.concat([self.proxy, weather], axis=1)
-        df = df.dropna()
-        plot_hexbin_density(df, 'Solar_Radiation', 'generation')
+
+        # Merge with generation proxy
+        df_merged = pd.concat([self.proxy, weather], axis=1).dropna()
+
+        # Plot
+        plot_hexbin_density(df_merged, x_col=x, y_col='generation')
+        plt.title(f"Power Curve: {x} vs. Generation", fontsize=14)
+        plt.xlabel(f"{x}")
+        plt.ylabel("Generation [MW]")
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.tight_layout()
         plt.show()
 
 if __name__ == '__main__':
 
-    ppa = PPA()
-    ppa.buildProxy()
-    ppa.showPowerCurve()
-    ppa.buildMark()
-    # ppa.computeCaptureRate()
+    ppa_wind = PPA(techno="WIND", capacity=10.0)
+    ppa_solar = PPA(techno="SR", capacity=10.0)
 
-    #
-    # ppa.buildProxy()
-    # ppa.buildMark()
-    # ppa.saveInstance()
-
-    # PPA.buildProxy()
-    # PPA.saveInstance()
-    # print('end')
+    ppas = [ppa_solar, ppa_wind]
+    for ppa in ppas:
+        mylogger.logger.info(ppa.id)
+        ppa.buildProxy()
+        ppa.buildMark()
+        ppa.showPowerCurve()
+        ppa.saveInstance()
